@@ -19,7 +19,7 @@
   <img alt="UI" src="https://img.shields.io/badge/Jetpack%20Compose-Material%203-4285F4?logo=jetpackcompose&logoColor=white" />
   <img alt="Min SDK" src="https://img.shields.io/badge/minSdk-26-blue" />
   <img alt="Target SDK" src="https://img.shields.io/badge/targetSdk-35-blue" />
-  <img alt="License" src="https://img.shields.io/badge/License-MIT-orange" />
+  <img alt="License" src="https://img.shields.io/badge/License-Proprietary%20%C2%B7%20All%20Rights%20Reserved-red" />
 </p>
 
 ---
@@ -132,8 +132,17 @@ after a reboot via `BootReceiver`.
 - First launch seeds a curated exercise library and a sensible 7-day starter plan, which you can
   fully customize.
 
+## ⚖️ License
+
+**Proprietary — All Rights Reserved.** Copyright © 2026 Hemanth Selam.
+
+This project is **not** open source. No permission is granted to use, copy, modify, or distribute
+the code or assets without the owner's prior written consent. See [LICENSE](LICENSE) for the full
+terms. The repository is public for viewing/portfolio purposes only.
+
 ---
 
 <p align="center">
-  <b>Build By God</b> · powered by <a href="https://github.com/SelamHemanth">hemanth</a>
+  <b>Build By God</b> · powered by <a href="https://github.com/SelamHemanth">hemanth</a><br/>
+  <sub>© 2026 Hemanth Selam · All Rights Reserved</sub>
 </p>
