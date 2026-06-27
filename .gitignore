@@ -1,0 +1,23 @@
+# Gradle / build output
+.gradle/
+build/
+app/build/
+*/build/
+
+# Local configuration (machine-specific, contains SDK path)
+local.properties
+
+# Android Studio / IntelliJ
+.idea/
+*.iml
+.DS_Store
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Logs
+*.log
+
+# Keep the distributable debug APK in the repo (BuildByGod-debug.apk) so it is
+# not ignored by the generic build rules above.
+!BuildByGod-debug.apk

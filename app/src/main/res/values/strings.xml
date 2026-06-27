@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">Build By God</string>
+    <string name="reminder_channel_name">Workout Reminders</string>
+    <string name="reminder_channel_desc">Reminders for your scheduled workouts</string>
+</resources>
