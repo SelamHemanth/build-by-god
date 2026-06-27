@@ -18,6 +18,5 @@ captures/
 # Logs
 *.log
 
-# Keep the distributable debug APK in the repo (BuildByGod-debug.apk) so it is
-# not ignored by the generic build rules above.
-!BuildByGod-debug.apk
+# Distributable APKs live under apk/devel and apk/release and ARE tracked
+# (the apk/ folder is not under build/, so it is not ignored above).

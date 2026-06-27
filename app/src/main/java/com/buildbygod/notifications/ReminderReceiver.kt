@@ -61,7 +61,7 @@ class ReminderReceiver : BroadcastReceiver() {
         )
 
         val notification = NotificationCompat.Builder(context, NotificationConstants.CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle("Time for $title")
             .setContentText("Your workout is ready. Let's forge it. Tap to begin.")
             .setPriority(NotificationCompat.PRIORITY_HIGH)
