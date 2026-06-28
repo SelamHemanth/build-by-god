@@ -124,12 +124,13 @@ class WorkoutSessionService : Service() {
                 putExtra(EXTRA_TOTAL, total)
                 putExtra(EXTRA_STARTED_AT, startedAt)
             }
-            ContextCompat.startForegroundService(context, intent)
+            // Can be called from lifecycle callbacks; guard against background-start limits (API 31+).
+            runCatching { ContextCompat.startForegroundService(context, intent) }
         }
 
         fun stop(context: Context) {
             val intent = Intent(context, WorkoutSessionService::class.java).apply { action = ACTION_STOP }
-            context.startService(intent)
+            runCatching { context.startService(intent) }
         }
     }
 }
