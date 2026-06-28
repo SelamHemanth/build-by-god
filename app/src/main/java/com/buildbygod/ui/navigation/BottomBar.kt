@@ -17,16 +17,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.material3.MaterialTheme
-import com.buildbygod.ui.theme.GlassStroke
 import com.buildbygod.ui.theme.Ink
-import com.buildbygod.ui.theme.InkElevated
 import com.buildbygod.ui.theme.LocalFitTokens
 import com.buildbygod.ui.theme.TextSecondary
+import com.buildbygod.ui.theme.liquidGlass
 
 @Composable
 fun BuildByGodBottomBar(
@@ -38,13 +35,7 @@ fun BuildByGodBottomBar(
         Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 12.dp)
-            .clip(RoundedCornerShape(26.dp))
-            .background(
-                Brush.linearGradient(listOf(GlassStroke, Color.Transparent))
-            )
-            .padding(1.dp)
-            .clip(RoundedCornerShape(25.dp))
-            .background(InkElevated.copy(alpha = 0.95f))
+            .liquidGlass(RoundedCornerShape(26.dp), opacityBoost = 0.12f)
             .navigationBarsPadding()
     ) {
         Row(

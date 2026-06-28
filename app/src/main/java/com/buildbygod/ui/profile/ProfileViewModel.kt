@@ -6,11 +6,13 @@ import com.buildbygod.data.datastore.UserProfile
 import com.buildbygod.data.repository.ProfileRepository
 import com.buildbygod.data.repository.ProgressRepository
 import com.buildbygod.domain.model.ActivityLevel
+import com.buildbygod.domain.model.ExperienceLevel
 import com.buildbygod.domain.model.Goal
+import com.buildbygod.domain.model.HeightUnit
 import com.buildbygod.domain.model.NutritionCalculator
 import com.buildbygod.domain.model.NutritionPlan
 import com.buildbygod.domain.model.Sex
-import com.buildbygod.domain.model.Units
+import com.buildbygod.domain.model.WeightUnit
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
@@ -30,7 +32,8 @@ data class WorkoutStats(
 data class ProfileUiState(
     val profile: UserProfile = UserProfile(),
     val stats: WorkoutStats = WorkoutStats(),
-    val nutrition: NutritionPlan? = null
+    val nutrition: NutritionPlan? = null,
+    val users: List<UserProfile> = emptyList()
 )
 
 @HiltViewModel
@@ -41,7 +44,7 @@ class ProfileViewModel @Inject constructor(
 
     private val today = LocalDate.now().toEpochDay()
 
-    val state = combine(repo.profile, progressRepo.sessions()) { profile, sessions ->
+    val state = combine(repo.profile, progressRepo.sessions(), repo.users) { profile, sessions, users ->
         val weight = if (profile.weightKg > 0f) profile.weightKg else profile.startWeight
         val activeDays = sessions.map { it.epochDay }.toSet()
         val weekStart = today - 6
@@ -56,9 +59,9 @@ class ProfileViewModel @Inject constructor(
             totalCaloriesBurned = totalCalories
         )
         val nutrition = if (NutritionCalculator.isComplete(weight, profile.heightCm, profile.age)) {
-            NutritionCalculator.compute(profile.sex, weight, profile.heightCm, profile.age, profile.activityLevel, profile.goal)
+            NutritionCalculator.compute(profile.sex, weight, profile.heightCm, profile.age, profile.activityLevel, profile.primaryGoal)
         } else null
-        ProfileUiState(profile, stats, nutrition)
+        ProfileUiState(profile, stats, nutrition, users)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ProfileUiState())
 
     private fun computeStreak(days: Set<Long>): Int {
@@ -70,16 +73,27 @@ class ProfileViewModel @Inject constructor(
     }
 
     fun setName(name: String) = update { it.copy(name = name) }
-    fun setGoal(goal: Goal) = update { it.copy(goal = goal) }
-    fun setUnits(units: Units) = update { it.copy(units = units) }
+    fun toggleGoal(goal: Goal) = update {
+        val next = if (goal in it.goals) it.goals - goal else it.goals + goal
+        it.copy(goals = next.ifEmpty { setOf(goal) })
+    }
     fun setReminderLead(min: Int) = update { it.copy(defaultReminderLead = min) }
     fun setHeight(cm: Int) = update { it.copy(heightCm = cm) }
+    fun setHeightUnit(unit: HeightUnit) = update { it.copy(heightUnit = unit) }
+    fun setWeightUnit(unit: WeightUnit) = update { it.copy(weightUnit = unit) }
     fun setWeight(kg: Float) = update {
         it.copy(weightKg = kg, startWeight = if (it.startWeight <= 0f) kg else it.startWeight)
     }
-    fun setAge(age: Int) = update { it.copy(age = age) }
+    fun setDob(epochDay: Long) = update { it.copy(dobEpochDay = epochDay) }
     fun setSex(sex: Sex) = update { it.copy(sex = sex) }
     fun setActivity(level: ActivityLevel) = update { it.copy(activityLevel = level) }
+    fun setExperience(level: ExperienceLevel) = update { it.copy(experience = level) }
+    fun setPhoto(uri: String?) = update { it.copy(photoUri = uri) }
+    fun setFrame(index: Int) = update { it.copy(profileFrame = index) }
+
+    fun addUser(name: String) = viewModelScope.launch { repo.addUser(name) }
+    fun switchUser(id: String) = viewModelScope.launch { repo.switchUser(id) }
+    fun removeUser(id: String) = viewModelScope.launch { repo.removeUser(id) }
 
     private fun update(transform: (UserProfile) -> UserProfile) {
         viewModelScope.launch { repo.update(transform) }

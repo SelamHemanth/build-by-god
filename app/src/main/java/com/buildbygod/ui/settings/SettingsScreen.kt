@@ -92,11 +92,17 @@ fun SettingsScreen(
             }
 
             Spacer(Modifier.height(8.dp))
-            SectionHeader("Glass intensity")
+            SectionHeader("Liquid glass")
             GlassCard(Modifier.fillMaxWidth()) {
+                Text(
+                    "Tune how glossy and translucent cards feel across the app.",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = TextSecondary
+                )
+                Spacer(Modifier.height(6.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        "Frosted",
+                        "Solid",
                         style = MaterialTheme.typography.labelMedium,
                         color = TextSecondary
                     )
@@ -111,13 +117,13 @@ fun SettingsScreen(
                         )
                     )
                     Text(
-                        "Solid",
+                        "Liquid",
                         style = MaterialTheme.typography.labelMedium,
                         color = TextSecondary
                     )
                 }
                 Text(
-                    "${(settings.glassIntensity * 100).toInt()}% opacity",
+                    "${(settings.glassIntensity * 100).toInt()}% glass",
                     style = MaterialTheme.typography.labelMedium,
                     color = tokens.accent,
                     fontWeight = FontWeight.SemiBold

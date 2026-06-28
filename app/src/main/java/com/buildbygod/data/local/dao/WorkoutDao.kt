@@ -25,6 +25,12 @@ interface WorkoutDao {
     @Query("SELECT * FROM workout_days WHERE dayOfWeek = :day")
     fun observeDay(day: Int): Flow<WorkoutDayEntity?>
 
+    @Query("SELECT * FROM workout_days WHERE dayOfWeek = :day")
+    suspend fun getDay(day: Int): WorkoutDayEntity?
+
+    @Query("SELECT COUNT(*) FROM day_exercises WHERE dayOfWeek = :day")
+    suspend fun countDayExercises(day: Int): Int
+
     @Query("SELECT * FROM workout_days WHERE reminderEnabled = 1 AND isRestDay = 0 AND scheduledMinutes >= 0")
     suspend fun daysWithReminders(): List<WorkoutDayEntity>
 
@@ -37,6 +43,9 @@ interface WorkoutDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertDayExercises(refs: List<DayExerciseCrossRef>)
+
+    @Query("DELETE FROM day_exercises")
+    suspend fun clearDayExercises()
 
     @Update
     suspend fun updateDayExercise(ref: DayExerciseCrossRef)

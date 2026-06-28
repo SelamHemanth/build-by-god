@@ -38,7 +38,7 @@ class SessionViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val day: Int = savedState["day"] ?: 1
-    private val startedAt = System.currentTimeMillis()
+    val startedAt = System.currentTimeMillis()
 
     private val _state = MutableStateFlow(SessionUiState())
     val state = _state.asStateFlow()

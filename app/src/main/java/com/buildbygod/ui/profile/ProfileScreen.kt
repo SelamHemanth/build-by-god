@@ -1,9 +1,12 @@
 package com.buildbygod.ui.profile
 
+import android.net.Uri
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,12 +24,16 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Bolt
+import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.LocalFireDepartment
+import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Timer
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -41,35 +48,30 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.core.content.FileProvider
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.buildbygod.data.datastore.UserProfile
 import com.buildbygod.domain.model.ActivityLevel
-import com.buildbygod.domain.model.Goal
-import com.buildbygod.domain.model.Sex
-import com.buildbygod.domain.model.Units
 import com.buildbygod.ui.theme.AccentAmber
 import com.buildbygod.ui.theme.AccentBlue
 import com.buildbygod.ui.theme.AccentGreen
 import com.buildbygod.ui.theme.AccentPink
-import com.buildbygod.ui.theme.AccentViolet
 import com.buildbygod.ui.theme.GlassCard
-import com.buildbygod.ui.theme.Ink
+import com.buildbygod.ui.theme.GlassDialog
 import com.buildbygod.ui.theme.LocalFitTokens
 import com.buildbygod.ui.theme.Pill
 import com.buildbygod.ui.theme.SectionHeader
 import com.buildbygod.ui.theme.Surface2
 import com.buildbygod.ui.theme.TextPrimary
 import com.buildbygod.ui.theme.TextSecondary
-
-private enum class EditField(val title: String, val unit: String) {
-    NAME("Your name", ""),
-    HEIGHT("Height", "cm"),
-    WEIGHT("Weight", "kg"),
-    AGE("Age", "years")
-}
+import com.buildbygod.ui.theme.liquidGlass
+import java.io.File
 
 @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
@@ -80,11 +82,23 @@ fun ProfileScreen(
     val state by vm.state.collectAsStateWithLifecycle()
     val profile = state.profile
     val tokens = LocalFitTokens.current
-    var editing by remember { mutableStateOf<EditField?>(null) }
+    val context = LocalContext.current
 
-    val permissionLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { }
+    var editingName by remember { mutableStateOf(false) }
+    var showPhotoOptions by remember { mutableStateOf(false) }
+    var showFramePicker by remember { mutableStateOf(false) }
+    var editorUri by remember { mutableStateOf<Uri?>(null) }
+    var pendingCameraUri by remember { mutableStateOf<Uri?>(null) }
+    var showAddUser by remember { mutableStateOf(false) }
+    var pendingDelete by remember { mutableStateOf<UserProfile?>(null) }
+
+    val galleryLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.PickVisualMedia()
+    ) { uri -> if (uri != null) editorUri = uri }
+
+    val cameraLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.TakePicture()
+    ) { ok -> if (ok) pendingCameraUri?.let { editorUri = it } }
 
     LazyColumn(
         Modifier.fillMaxSize().statusBarsPadding().padding(horizontal = 16.dp),
@@ -103,27 +117,55 @@ fun ProfileScreen(
             }
         }
 
+        // ---- Identity card ----
         item {
-            GlassCard(Modifier.fillMaxWidth(), onClick = { editing = EditField.NAME }) {
+            GlassCard(Modifier.fillMaxWidth()) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        Modifier.size(72.dp).clip(CircleShape).background(tokens.accentGradient),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            profile.name.take(1).ifBlank { "A" }.uppercase(),
-                            style = MaterialTheme.typography.displayMedium,
-                            color = Ink,
-                            fontWeight = FontWeight.Bold
+                    Box {
+                        FramedAvatar(
+                            photoPath = profile.photoUri,
+                            initial = profile.name.take(1),
+                            frameIndex = profile.profileFrame,
+                            size = 84.dp,
+                            fallbackBrush = tokens.accentGradient,
+                            modifier = Modifier.clickable { showPhotoOptions = true }
                         )
+                        Box(
+                            Modifier
+                                .align(Alignment.BottomEnd)
+                                .size(28.dp)
+                                .clip(CircleShape)
+                                .background(tokens.accent)
+                                .clickable { showPhotoOptions = true },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(Icons.Filled.CameraAlt, contentDescription = "Change photo", tint = com.buildbygod.ui.theme.Ink, modifier = Modifier.size(16.dp))
+                        }
                     }
-                    Column(Modifier.padding(start = 16.dp)) {
+                    Column(Modifier.padding(start = 16.dp).clickable { editingName = true }) {
                         Text(profile.name.ifBlank { "Athlete" }, style = MaterialTheme.typography.headlineMedium, color = TextPrimary)
-                        Text(profile.goal.label, style = MaterialTheme.typography.bodyMedium, color = tokens.accent)
-                        Text("Tap to edit name", style = MaterialTheme.typography.labelMedium, color = TextSecondary)
+                        Text(
+                            profile.goals.joinToString(" · ") { it.label },
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = tokens.accent
+                        )
+                        Text("Tap to edit name · photo · frame", style = MaterialTheme.typography.labelMedium, color = TextSecondary)
                     }
                 }
             }
+        }
+
+        // ---- Profiles / multi-user ----
+        item { SectionHeader("Profiles") }
+        item {
+            UsersSection(
+                users = state.users,
+                activeId = profile.id,
+                fallback = tokens.accentGradient,
+                onSwitch = { vm.switchUser(it) },
+                onAdd = { showAddUser = true },
+                onRemove = { pendingDelete = it }
+            )
         }
 
         // ---- Workout stats ----
@@ -142,28 +184,41 @@ fun ProfileScreen(
         }
 
         // ---- Body details ----
-        item { SectionHeader("Body details") }
+        item { SectionHeader("Date of birth") }
+        item { DobField(profile.dobEpochDay, profile.age, onPick = { vm.setDob(it) }) }
+
+        item { SectionHeader("Height") }
         item {
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                DetailTile("Height", if (profile.heightCm > 0) "${profile.heightCm} cm" else "Set", Modifier.weight(1f)) { editing = EditField.HEIGHT }
-                DetailTile("Weight", if (currentWeight(profile.weightKg, profile.startWeight) > 0) "${currentWeight(profile.weightKg, profile.startWeight)} kg" else "Set", Modifier.weight(1f)) { editing = EditField.WEIGHT }
-                DetailTile("Age", if (profile.age > 0) "${profile.age}" else "Set", Modifier.weight(1f)) { editing = EditField.AGE }
-            }
+            HeightPicker(
+                heightCm = profile.heightCm,
+                unit = profile.heightUnit,
+                onHeightCm = { vm.setHeight(it) },
+                onUnit = { vm.setHeightUnit(it) }
+            )
         }
+
+        item { SectionHeader("Weight") }
         item {
-            Text("Sex", style = MaterialTheme.typography.labelLarge, color = TextSecondary)
-            Spacer(Modifier.height(6.dp))
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Sex.entries.forEach { Pill(it.label, profile.sex == it, { vm.setSex(it) }) }
-            }
+            WeightPicker(
+                weightKg = if (profile.weightKg > 0f) profile.weightKg else profile.startWeight,
+                unit = profile.weightUnit,
+                onWeightKg = { vm.setWeight(it) },
+                onUnit = { vm.setWeightUnit(it) }
+            )
         }
+
+        item { SectionHeader("Sex") }
+        item { SexChips(profile.sex) { vm.setSex(it) } }
+
+        item { SectionHeader("Activity level") }
         item {
-            Text("Activity level", style = MaterialTheme.typography.labelLarge, color = TextSecondary)
-            Spacer(Modifier.height(6.dp))
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 ActivityLevel.entries.forEach { Pill(it.label, profile.activityLevel == it, { vm.setActivity(it) }) }
             }
         }
+
+        item { SectionHeader("Training experience") }
+        item { ExperiencePicker(profile.experience) { vm.setExperience(it) } }
 
         // ---- Nutrition ----
         item { SectionHeader("Daily nutrition target") }
@@ -173,19 +228,17 @@ fun ProfileScreen(
                 GlassCard(Modifier.fillMaxWidth()) {
                     Text("Complete your body details", style = MaterialTheme.typography.titleMedium, color = TextPrimary)
                     Text(
-                        "Add your height, weight and age to get personalized calorie and protein targets.",
+                        "Add your date of birth, height and weight to get personalized calorie and protein targets.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = TextSecondary
                     )
                 }
             } else {
                 GlassCard(Modifier.fillMaxWidth()) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Column(Modifier.weight(1f)) {
-                            Text("Calorie target", style = MaterialTheme.typography.labelMedium, color = TextSecondary)
-                            Text("${n.calorieTarget} kcal", style = MaterialTheme.typography.headlineMedium, color = TextPrimary, fontWeight = FontWeight.Bold)
-                            Text("BMR ${n.bmr}  -  TDEE ${n.tdee} kcal", style = MaterialTheme.typography.labelMedium, color = TextSecondary)
-                        }
+                    Column(Modifier.fillMaxWidth()) {
+                        Text("Calorie target", style = MaterialTheme.typography.labelMedium, color = TextSecondary)
+                        Text("${n.calorieTarget} kcal", style = MaterialTheme.typography.headlineMedium, color = TextPrimary, fontWeight = FontWeight.Bold)
+                        Text("BMR ${n.bmr}  -  TDEE ${n.tdee} kcal", style = MaterialTheme.typography.labelMedium, color = TextSecondary)
                     }
                     Spacer(Modifier.height(12.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -199,19 +252,9 @@ fun ProfileScreen(
             }
         }
 
-        // ---- Goal & units ----
-        item { SectionHeader("Goal") }
-        item {
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Goal.entries.forEach { Pill(it.label, profile.goal == it, { vm.setGoal(it) }) }
-            }
-        }
-        item { SectionHeader("Units") }
-        item {
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Units.entries.forEach { Pill(it.label, profile.units == it, { vm.setUnits(it) }) }
-            }
-        }
+        // ---- Goals ----
+        item { SectionHeader("Goals") }
+        item { GoalChips(profile.goals) { vm.toggleGoal(it) } }
 
         item { SectionHeader("Default reminder lead time") }
         item {
@@ -223,57 +266,304 @@ fun ProfileScreen(
         }
 
         item {
-            GlassCard(Modifier.fillMaxWidth(), onClick = {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                    permissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
-                }
-            }) {
-                Text("Enable workout notifications", style = MaterialTheme.typography.titleMedium, color = TextPrimary)
-                Text("Allow BuildByGod to remind you when it's time to train.", style = MaterialTheme.typography.bodyMedium, color = TextSecondary)
-            }
+            NotificationsCard()
         }
 
         item {
-            Text("BuildByGod v1.0  -  All data stays on your device.", style = MaterialTheme.typography.labelMedium, color = TextSecondary)
+            Spacer(Modifier.height(8.dp))
+            Text("Build By God  ·  v0.2.0", style = MaterialTheme.typography.labelMedium, color = TextSecondary)
+            Text("powered by hemanth", style = MaterialTheme.typography.labelMedium, color = tokens.accent, fontWeight = FontWeight.SemiBold)
+            Text("All data stays on your device.", style = MaterialTheme.typography.labelMedium, color = TextSecondary)
             Spacer(Modifier.height(90.dp))
         }
     }
 
-    editing?.let { field ->
-        val initial = when (field) {
-            EditField.NAME -> profile.name
-            EditField.HEIGHT -> if (profile.heightCm > 0) profile.heightCm.toString() else ""
-            EditField.WEIGHT -> currentWeight(profile.weightKg, profile.startWeight).let { if (it > 0) it.toString() else "" }
-            EditField.AGE -> if (profile.age > 0) profile.age.toString() else ""
+    // ---- dialogs ----
+    if (editingName) {
+        NameDialog(profile.name, onDismiss = { editingName = false }) {
+            vm.setName(it); editingName = false
         }
-        EditDialog(
-            field = field,
-            initial = initial,
-            onDismiss = { editing = null },
-            onConfirm = { value ->
-                when (field) {
-                    EditField.NAME -> vm.setName(value)
-                    EditField.HEIGHT -> value.toIntOrNull()?.let { vm.setHeight(it) }
-                    EditField.WEIGHT -> value.toFloatOrNull()?.let { vm.setWeight(it) }
-                    EditField.AGE -> value.toIntOrNull()?.let { vm.setAge(it) }
+    }
+
+    if (showPhotoOptions) {
+        PhotoOptionsDialog(
+            hasPhoto = !profile.photoUri.isNullOrBlank(),
+            onDismiss = { showPhotoOptions = false },
+            onGallery = {
+                showPhotoOptions = false
+                galleryLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+            },
+            onCamera = {
+                showPhotoOptions = false
+                val uri = createCameraUri(context)
+                pendingCameraUri = uri
+                cameraLauncher.launch(uri)
+            },
+            onFrame = { showPhotoOptions = false; showFramePicker = true },
+            onRemove = { showPhotoOptions = false; vm.setPhoto(null) }
+        )
+    }
+
+    if (showFramePicker) {
+        FramePickerDialog(
+            current = profile.profileFrame,
+            photoPath = profile.photoUri,
+            initial = profile.name.take(1),
+            fallback = tokens.accentGradient,
+            onDismiss = { showFramePicker = false },
+            onPick = { vm.setFrame(it); showFramePicker = false }
+        )
+    }
+
+    editorUri?.let { uri ->
+        PhotoEditorDialog(
+            sourceUri = uri,
+            onCancel = { editorUri = null },
+            onSaved = { path -> vm.setPhoto(path); editorUri = null }
+        )
+    }
+
+    if (showAddUser) {
+        AddUserDialog(onDismiss = { showAddUser = false }) { name ->
+            vm.addUser(name); showAddUser = false
+        }
+    }
+
+    pendingDelete?.let { target ->
+        GlassDialog(
+            onDismiss = { pendingDelete = null },
+            title = "Remove profile",
+            confirmButton = {
+                TextButton(onClick = { vm.removeUser(target.id); pendingDelete = null }) {
+                    Text("Remove", color = AccentPink)
                 }
-                editing = null
+            },
+            dismissButton = { TextButton(onClick = { pendingDelete = null }) { Text("Cancel", color = TextSecondary) } }
+        ) {
+            Text(
+                "Remove ${target.name.ifBlank { "this profile" }}? Their saved details will be deleted from this device.",
+                color = TextSecondary
+            )
+        }
+    }
+}
+
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+@Composable
+private fun UsersSection(
+    users: List<UserProfile>,
+    activeId: String,
+    fallback: androidx.compose.ui.graphics.Brush,
+    onSwitch: (String) -> Unit,
+    onAdd: () -> Unit,
+    onRemove: (UserProfile) -> Unit
+) {
+    val tokens = LocalFitTokens.current
+    GlassCard(Modifier.fillMaxWidth()) {
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            users.forEach { user ->
+                val active = user.id == activeId
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Box {
+                        Box(
+                            Modifier
+                                .clip(CircleShape)
+                                .then(if (active) Modifier.background(tokens.accent.copy(alpha = 0.25f)) else Modifier)
+                                .clickable { onSwitch(user.id) }
+                                .padding(4.dp)
+                        ) {
+                            FramedAvatar(
+                                photoPath = user.photoUri,
+                                initial = user.name.take(1),
+                                frameIndex = user.profileFrame,
+                                size = 58.dp,
+                                fallbackBrush = fallback
+                            )
+                        }
+                        if (users.size > 1) {
+                            Box(
+                                Modifier
+                                    .align(Alignment.TopEnd)
+                                    .size(22.dp)
+                                    .clip(CircleShape)
+                                    .background(AccentPink)
+                                    .clickable { onRemove(user) },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(Icons.Filled.Close, contentDescription = "Remove ${user.name}", tint = Color.White, modifier = Modifier.size(14.dp))
+                            }
+                        }
+                    }
+                    Text(
+                        user.name.ifBlank { "Athlete" },
+                        style = MaterialTheme.typography.labelMedium,
+                        color = if (active) tokens.accent else TextSecondary,
+                        fontWeight = if (active) FontWeight.SemiBold else FontWeight.Normal
+                    )
+                }
             }
+            // ---- add new profile ----
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Box(
+                    Modifier
+                        .padding(4.dp)
+                        .size(58.dp)
+                        .clip(CircleShape)
+                        .background(Surface2.copy(alpha = 0.6f))
+                        .clickable { onAdd() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(Icons.Filled.Add, contentDescription = "Add profile", tint = tokens.accent, modifier = Modifier.size(26.dp))
+                }
+                Text("Add", style = MaterialTheme.typography.labelMedium, color = TextSecondary)
+            }
+        }
+    }
+}
+
+@Composable
+private fun AddUserDialog(onDismiss: () -> Unit, onConfirm: (String) -> Unit) {
+    var text by remember { mutableStateOf("") }
+    val tokens = LocalFitTokens.current
+    GlassDialog(
+        onDismiss = onDismiss,
+        title = "Add profile",
+        confirmButton = {
+            TextButton(onClick = { onConfirm(text.trim()) }, enabled = text.isNotBlank()) {
+                Text("Create", color = tokens.accent)
+            }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel", color = TextSecondary) } }
+    ) {
+        Text("Create a new profile. You'll set up their details next.", color = TextSecondary, style = MaterialTheme.typography.bodyMedium)
+        Spacer(Modifier.height(12.dp))
+        OutlinedTextField(
+            value = text,
+            onValueChange = { text = it },
+            singleLine = true,
+            label = { Text("Name") }
         )
     }
 }
 
-private fun currentWeight(weightKg: Float, startWeight: Float): Float =
-    if (weightKg > 0f) weightKg else startWeight
+@Composable
+private fun NotificationsCard() {
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { }
+    GlassCard(Modifier.fillMaxWidth(), onClick = {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            permissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }) {
+        Text("Enable workout notifications", style = MaterialTheme.typography.titleMedium, color = TextPrimary)
+        Text("Allow Build By God to remind you when it's time to train.", style = MaterialTheme.typography.bodyMedium, color = TextSecondary)
+    }
+}
+
+private fun createCameraUri(context: android.content.Context): Uri {
+    val dir = File(context.cacheDir, "images").apply { mkdirs() }
+    val file = File(dir, "capture_${System.currentTimeMillis()}.jpg")
+    return FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+}
 
 @Composable
-private fun StatTile(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    tint: androidx.compose.ui.graphics.Color,
-    value: String,
-    label: String,
-    modifier: Modifier = Modifier
+private fun PhotoOptionsDialog(
+    hasPhoto: Boolean,
+    onDismiss: () -> Unit,
+    onGallery: () -> Unit,
+    onCamera: () -> Unit,
+    onFrame: () -> Unit,
+    onRemove: () -> Unit
 ) {
+    GlassDialog(
+        onDismiss = onDismiss,
+        title = "Profile photo",
+        confirmButton = { TextButton(onClick = onDismiss) { Text("Close", color = TextSecondary) } }
+    ) {
+        OptionRow(Icons.Filled.PhotoLibrary, "Choose from gallery", onGallery)
+        OptionRow(Icons.Filled.CameraAlt, "Take a photo", onCamera)
+        OptionRow(Icons.Filled.CheckCircle, "Choose frame", onFrame)
+        if (hasPhoto) OptionRow(Icons.Filled.Delete, "Remove photo", onRemove)
+    }
+}
+
+@Composable
+private fun OptionRow(icon: ImageVector, label: String, onClick: () -> Unit) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .clickable { onClick() }
+            .padding(vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(icon, contentDescription = null, tint = LocalFitTokens.current.accent, modifier = Modifier.size(22.dp))
+        Spacer(Modifier.size(14.dp))
+        Text(label, style = MaterialTheme.typography.titleMedium, color = TextPrimary)
+    }
+}
+
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+@Composable
+private fun FramePickerDialog(
+    current: Int,
+    photoPath: String?,
+    initial: String,
+    fallback: androidx.compose.ui.graphics.Brush,
+    onDismiss: () -> Unit,
+    onPick: (Int) -> Unit
+) {
+    val tokens = LocalFitTokens.current
+    GlassDialog(
+        onDismiss = onDismiss,
+        title = "Choose a frame",
+        confirmButton = { TextButton(onClick = onDismiss) { Text("Done", color = tokens.accent) } }
+    ) {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(14.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                profileFrames.forEachIndexed { index, frame ->
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Box(
+                            Modifier
+                                .clip(CircleShape)
+                                .then(if (index == current) Modifier.background(tokens.accent.copy(alpha = 0.25f)) else Modifier)
+                                .clickable { onPick(index) }
+                                .padding(4.dp)
+                        ) {
+                            FramedAvatar(
+                                photoPath = photoPath,
+                                initial = initial,
+                                frameIndex = index,
+                                size = 56.dp,
+                                fallbackBrush = fallback
+                            )
+                        }
+                        Text(frame.label, style = MaterialTheme.typography.labelMedium, color = if (index == current) tokens.accent else TextSecondary)
+                    }
+                }
+            }
+    }
+}
+
+@Composable
+private fun NameDialog(initial: String, onDismiss: () -> Unit, onConfirm: (String) -> Unit) {
+    var text by remember { mutableStateOf(initial) }
+    val tokens = LocalFitTokens.current
+    GlassDialog(
+        onDismiss = onDismiss,
+        title = "Your name",
+        confirmButton = { TextButton(onClick = { onConfirm(text) }) { Text("Save", color = tokens.accent) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel", color = TextSecondary) } }
+    ) {
+        OutlinedTextField(value = text, onValueChange = { text = it }, singleLine = true)
+    }
+}
+
+@Composable
+private fun StatTile(icon: ImageVector, tint: Color, value: String, label: String, modifier: Modifier = Modifier) {
     GlassCard(modifier) {
         Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(22.dp))
         Spacer(Modifier.height(6.dp))
@@ -283,25 +573,10 @@ private fun StatTile(
 }
 
 @Composable
-private fun DetailTile(label: String, value: String, modifier: Modifier = Modifier, onClick: () -> Unit) {
-    GlassCard(modifier, cornerRadius = 18.dp, onClick = onClick) {
-        Text(label, style = MaterialTheme.typography.labelMedium, color = TextSecondary)
-        Spacer(Modifier.height(4.dp))
-        Text(value, style = MaterialTheme.typography.titleMedium, color = TextPrimary, fontWeight = FontWeight.SemiBold)
-    }
-}
-
-@Composable
-private fun MacroPill(
-    label: String,
-    value: String,
-    tint: androidx.compose.ui.graphics.Color,
-    modifier: Modifier = Modifier
-) {
+private fun MacroPill(label: String, value: String, tint: Color, modifier: Modifier = Modifier) {
     Box(
         modifier
-            .clip(RoundedCornerShape(14.dp))
-            .background(Surface2.copy(alpha = 0.6f))
+            .liquidGlass(RoundedCornerShape(14.dp), bloom = false)
             .padding(12.dp)
     ) {
         Column {
@@ -310,33 +585,4 @@ private fun MacroPill(
             Text(value, style = MaterialTheme.typography.titleMedium, color = TextPrimary, fontWeight = FontWeight.Bold)
         }
     }
-}
-
-@Composable
-private fun EditDialog(
-    field: EditField,
-    initial: String,
-    onDismiss: () -> Unit,
-    onConfirm: (String) -> Unit
-) {
-    var text by remember { mutableStateOf(initial) }
-    val tokens = LocalFitTokens.current
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        containerColor = tokens.sheet,
-        title = { Text(field.title, color = TextPrimary) },
-        text = {
-            OutlinedTextField(
-                value = text,
-                onValueChange = { text = it },
-                singleLine = true,
-                suffix = { if (field.unit.isNotEmpty()) Text(field.unit, color = TextSecondary) },
-                keyboardOptions = KeyboardOptions(
-                    keyboardType = if (field == EditField.NAME) KeyboardType.Text else KeyboardType.Number
-                )
-            )
-        },
-        confirmButton = { TextButton(onClick = { onConfirm(text) }) { Text("Save", color = tokens.accent) } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel", color = TextSecondary) } }
-    )
 }

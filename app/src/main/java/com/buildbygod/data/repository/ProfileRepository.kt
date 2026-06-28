@@ -11,5 +11,9 @@ class ProfileRepository @Inject constructor(
     private val store: ProfileDataStore
 ) {
     val profile: Flow<UserProfile> = store.profile
+    val users: Flow<List<UserProfile>> = store.users
     suspend fun update(transform: (UserProfile) -> UserProfile) = store.update(transform)
+    suspend fun addUser(name: String) = store.addUser(name)
+    suspend fun switchUser(id: String) = store.switchUser(id)
+    suspend fun removeUser(id: String) = store.removeUser(id)
 }

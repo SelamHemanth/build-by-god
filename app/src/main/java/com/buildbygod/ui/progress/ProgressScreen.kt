@@ -42,6 +42,9 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.buildbygod.data.local.entity.SessionLogEntity
+import com.buildbygod.domain.model.BodyComposition
+import com.buildbygod.domain.model.UnitConvert
+import com.buildbygod.domain.model.WeightUnit
 import com.buildbygod.ui.theme.AccentAmber
 import com.buildbygod.ui.theme.AccentBlue
 import com.buildbygod.ui.theme.AccentGreen
@@ -53,6 +56,7 @@ import com.buildbygod.ui.theme.ProgressRing
 import com.buildbygod.ui.theme.Surface2
 import com.buildbygod.ui.theme.TextPrimary
 import com.buildbygod.ui.theme.TextSecondary
+import com.buildbygod.ui.theme.liquidGlass
 import com.buildbygod.ui.util.dayFull
 import java.time.LocalDate
 import java.time.format.TextStyle
@@ -123,6 +127,26 @@ fun ProgressScreen(vm: ProgressViewModel = hiltViewModel()) {
             }
         }
 
+        // Body insights derived from the profile
+        item {
+            Text("Body insights", style = MaterialTheme.typography.titleMedium, color = TextPrimary, fontWeight = FontWeight.SemiBold)
+        }
+        item {
+            val body = state.body
+            if (body == null) {
+                GlassCard(Modifier.fillMaxWidth()) {
+                    Text("Unlock body insights", style = MaterialTheme.typography.titleMedium, color = TextPrimary)
+                    Text(
+                        "Add your date of birth, height and weight in the Profile tab to see your target weight, BMI and body-fat estimate.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = TextSecondary
+                    )
+                }
+            } else {
+                BodyInsightsCard(body, state.weightUnit)
+            }
+        }
+
         // Calendar
         item { CalendarCard(state, onPrev = vm::previousMonth, onNext = vm::nextMonth) }
 
@@ -143,6 +167,100 @@ fun ProgressScreen(vm: ProgressViewModel = hiltViewModel()) {
         items(state.sessions, key = { it.id }) { s -> SessionRow(s) }
 
         item { Spacer(Modifier.height(90.dp)) }
+    }
+}
+
+@Composable
+private fun BodyInsightsCard(body: BodyComposition, unit: WeightUnit) {
+    fun w(kg: Float) = UnitConvert.formatWeight(kg, unit)
+
+    GlassCard(Modifier.fillMaxWidth()) {
+        // Target weight + goal
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
+            Column(Modifier.weight(1f)) {
+                Text("Target weight", style = MaterialTheme.typography.labelMedium, color = TextSecondary)
+                Text(w(body.targetWeightKg), style = MaterialTheme.typography.headlineMedium, color = TextPrimary, fontWeight = FontWeight.Bold)
+                val delta = when {
+                    body.toTargetKg < -0.1f -> "Lose ${w(-body.toTargetKg)} to goal"
+                    body.toTargetKg > 0.1f -> "Gain ${w(body.toTargetKg)} to goal"
+                    else -> "You're at your target"
+                }
+                Text(delta, style = MaterialTheme.typography.labelMedium, color = AccentGreen)
+            }
+            Box(
+                Modifier
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(AccentViolet.copy(alpha = 0.18f))
+                    .padding(horizontal = 10.dp, vertical = 6.dp)
+            ) {
+                Text(body.goal.label, style = MaterialTheme.typography.labelMedium, color = AccentViolet, fontWeight = FontWeight.SemiBold)
+            }
+        }
+
+        Spacer(Modifier.height(12.dp))
+
+        // start -> current -> target journey
+        TargetProgressBar(body.targetProgress)
+        Spacer(Modifier.height(6.dp))
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text("Start ${w(body.startWeightKg)}", style = MaterialTheme.typography.labelMedium, color = TextSecondary)
+            Text("Now ${w(body.weightKg)}", style = MaterialTheme.typography.labelMedium, color = AccentBlue, fontWeight = FontWeight.SemiBold)
+            Text("Goal ${w(body.targetWeightKg)}", style = MaterialTheme.typography.labelMedium, color = TextSecondary)
+        }
+
+        Spacer(Modifier.height(14.dp))
+
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            MetricTile("BMI", "${body.bmi}", body.bmiCategory, AccentBlue, Modifier.weight(1f))
+            MetricTile("Body fat", "${body.bodyFatPct}%", body.bodyFatCategory, AccentAmber, Modifier.weight(1f))
+        }
+        Spacer(Modifier.height(10.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            MetricTile("Lean mass", w(body.leanMassKg), "Muscle + organs", AccentGreen, Modifier.weight(1f))
+            MetricTile("Fat mass", w(body.fatMassKg), "Estimated", AccentViolet, Modifier.weight(1f))
+        }
+
+        Spacer(Modifier.height(12.dp))
+        Text(
+            "Healthy range for your height: ${w(body.healthyLowKg)} - ${w(body.healthyHighKg)}",
+            style = MaterialTheme.typography.labelMedium,
+            color = TextSecondary
+        )
+    }
+}
+
+@Composable
+private fun TargetProgressBar(progress: Float) {
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .height(10.dp)
+            .clip(CircleShape)
+            .background(Surface2.copy(alpha = 0.7f))
+    ) {
+        Box(
+            Modifier
+                .fillMaxWidth(progress.coerceIn(0f, 1f))
+                .height(10.dp)
+                .clip(CircleShape)
+                .background(Brush.linearGradient(listOf(AccentBlue, AccentGreen)))
+        )
+    }
+}
+
+@Composable
+private fun MetricTile(label: String, value: String, sub: String, tint: Color, modifier: Modifier = Modifier) {
+    Box(
+        modifier
+            .liquidGlass(RoundedCornerShape(14.dp), bloom = false)
+            .padding(12.dp)
+    ) {
+        Column {
+            Text(label, style = MaterialTheme.typography.labelMedium, color = tint, fontWeight = FontWeight.SemiBold)
+            Spacer(Modifier.height(2.dp))
+            Text(value, style = MaterialTheme.typography.titleLarge, color = TextPrimary, fontWeight = FontWeight.Bold)
+            Text(sub, style = MaterialTheme.typography.labelMedium, color = TextSecondary)
+        }
     }
 }
 
@@ -250,8 +368,7 @@ private fun RoundIconButton(
     Box(
         Modifier
             .size(36.dp)
-            .clip(CircleShape)
-            .background(Surface2.copy(alpha = if (enabled) 0.7f else 0.25f))
+            .liquidGlass(CircleShape, bloom = false)
             .then(if (enabled) Modifier.clickable { onClick() } else Modifier),
         contentAlignment = Alignment.Center
     ) {

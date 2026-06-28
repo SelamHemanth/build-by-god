@@ -3,7 +3,11 @@ package com.buildbygod.ui.progress
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.buildbygod.data.local.entity.SessionLogEntity
+import com.buildbygod.data.repository.ProfileRepository
 import com.buildbygod.data.repository.ProgressRepository
+import com.buildbygod.domain.model.BodyComposition
+import com.buildbygod.domain.model.BodyMetrics
+import com.buildbygod.domain.model.WeightUnit
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -35,12 +39,16 @@ data class ProgressUiState(
     val rangeMinutes: Int = 0,
     val consistency: Float = 0f,
     // calendar
-    val month: YearMonth = YearMonth.now()
+    val month: YearMonth = YearMonth.now(),
+    // profile-derived body insights
+    val body: BodyComposition? = null,
+    val weightUnit: WeightUnit = WeightUnit.KG
 )
 
 @HiltViewModel
 class ProgressViewModel @Inject constructor(
-    repo: ProgressRepository
+    repo: ProgressRepository,
+    profileRepo: ProfileRepository
 ) : ViewModel() {
 
     private val today = LocalDate.now().toEpochDay()
@@ -51,12 +59,26 @@ class ProgressViewModel @Inject constructor(
         repo.sessions(),
         repo.sessionDays(),
         range,
-        month
-    ) { sessions, days, range, month ->
+        month,
+        profileRepo.profile
+    ) { sessions, days, range, month, profile ->
         val activeSet = days.toSet()
         val windowStart = today - (range.days - 1)
         val inRange = sessions.filter { it.epochDay in windowStart..today }
         val activeInRange = activeSet.count { it in windowStart..today }
+
+        val weight = if (profile.weightKg > 0f) profile.weightKg else profile.startWeight
+        val body = if (BodyMetrics.isComplete(weight, profile.heightCm, profile.age)) {
+            BodyMetrics.compute(
+                sex = profile.sex,
+                weightKg = weight,
+                heightCm = profile.heightCm,
+                age = profile.age,
+                goal = profile.primaryGoal,
+                startWeightKg = profile.startWeight
+            )
+        } else null
+
         ProgressUiState(
             range = range,
             sessions = sessions,
@@ -67,7 +89,9 @@ class ProgressViewModel @Inject constructor(
             rangeActiveDays = activeInRange,
             rangeMinutes = (inRange.sumOf { it.durationSeconds } / 60).toInt(),
             consistency = (activeInRange.toFloat() / range.days).coerceIn(0f, 1f),
-            month = month
+            month = month,
+            body = body,
+            weightUnit = profile.weightUnit
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ProgressUiState())
 

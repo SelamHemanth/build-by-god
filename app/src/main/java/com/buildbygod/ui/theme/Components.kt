@@ -2,10 +2,8 @@ package com.buildbygod.ui.theme
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -42,22 +40,8 @@ fun GlassCard(
     contentPadding: PaddingValues = PaddingValues(16.dp),
     content: @Composable () -> Unit
 ) {
-    val tokens = LocalFitTokens.current
     val shape = RoundedCornerShape(cornerRadius)
-    // Glass slider: lower intensity = more translucent (more "frosted"), higher = more solid.
-    val fillAlpha = if (tokens.isDark) (0.30f + tokens.glassAlpha * 0.65f)
-    else (0.55f + tokens.glassAlpha * 0.45f)
-    var base = modifier
-        .clip(shape)
-        .background(color = tokens.surface.copy(alpha = fillAlpha), shape = shape)
-        .background(brush = glassGradient(), shape = shape)
-        .border(
-            BorderStroke(
-                1.dp,
-                Brush.linearGradient(listOf(GlassStroke, Color.Transparent, GlassStroke))
-            ),
-            shape
-        )
+    var base = modifier.liquidGlass(shape)
     if (onClick != null) base = base.clickable { onClick() }
     Box(base.padding(contentPadding)) {
         Column { content() }
@@ -155,13 +139,12 @@ fun Pill(
     modifier: Modifier = Modifier
 ) {
     val shape = RoundedCornerShape(50)
+    val surface =
+        if (selected) Modifier.clip(shape).background(AccentGradient)
+        else Modifier.liquidGlass(shape, bloom = false)
     Box(
         modifier
-            .clip(shape)
-            .then(
-                if (selected) Modifier.background(AccentGradient)
-                else Modifier.background(Surface2)
-            )
+            .then(surface)
             .clickable { onClick() }
             .padding(horizontal = 16.dp, vertical = 9.dp),
         contentAlignment = Alignment.Center
@@ -182,15 +165,5 @@ fun GradientBorderBox(
     content: @Composable () -> Unit
 ) {
     val shape = RoundedCornerShape(cornerRadius)
-    Box(
-        modifier
-            .clip(shape)
-            .background(
-                Brush.linearGradient(listOf(GlassStroke, Color.Transparent)),
-                shape
-            )
-            .padding(1.dp)
-            .clip(shape)
-            .background(Surface1, shape)
-    ) { content() }
+    Box(modifier.liquidGlass(shape)) { content() }
 }

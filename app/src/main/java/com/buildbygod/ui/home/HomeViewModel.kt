@@ -16,6 +16,8 @@ import javax.inject.Inject
 
 data class HomeUiState(
     val name: String = "",
+    val photoUri: String? = null,
+    val profileFrame: Int = 0,
     val todayDow: Int = LocalDate.now().dayOfWeek.value,
     val today: WorkoutDayEntity? = null,
     val warmups: Int = 0,
@@ -50,6 +52,8 @@ class HomeViewModel @Inject constructor(
         val today = days.firstOrNull { it.dayOfWeek == todayDow }
         HomeUiState(
             name = profile.name,
+            photoUri = profile.photoUri,
+            profileFrame = profile.profileFrame,
             todayDow = todayDow,
             today = today,
             warmups = todayList.count { it.dxSection == ExerciseType.WARMUP.name },

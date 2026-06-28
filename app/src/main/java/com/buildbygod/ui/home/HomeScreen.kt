@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.buildbygod.data.local.entity.WorkoutDayEntity
+import com.buildbygod.ui.profile.FramedAvatar
 import com.buildbygod.ui.theme.AccentAmber
 import com.buildbygod.ui.theme.AccentBlue
 import com.buildbygod.ui.theme.AccentGradient
@@ -68,13 +69,29 @@ fun HomeScreen(
     ) {
         item {
             Spacer(Modifier.height(8.dp))
-            Text(greeting(), style = MaterialTheme.typography.bodyMedium, color = TextSecondary)
-            Text(
-                state.name.ifBlank { "Athlete" },
-                style = MaterialTheme.typography.displayMedium,
-                color = TextPrimary,
-                fontWeight = FontWeight.Bold
-            )
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text(greeting(), style = MaterialTheme.typography.bodyMedium, color = TextSecondary)
+                    Text(
+                        state.name.ifBlank { "Athlete" },
+                        style = MaterialTheme.typography.displayMedium,
+                        color = TextPrimary,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                Spacer(Modifier.width(12.dp))
+                FramedAvatar(
+                    photoPath = state.photoUri,
+                    initial = state.name.take(1),
+                    frameIndex = state.profileFrame,
+                    size = 52.dp,
+                    fallbackBrush = AccentGradient
+                )
+            }
         }
 
         item { TodayCard(state, onOpenDay, onStartSession) }

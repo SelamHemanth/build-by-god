@@ -17,7 +17,9 @@ fun GlossyBackground(
     content: @Composable () -> Unit
 ) {
     val tokens = LocalFitTokens.current
-    val glow = if (tokens.isDark) 0.18f else 0.12f
+    // Richer backdrop as glass intensity rises, so the translucency has color to reveal.
+    val base = if (tokens.isDark) 0.16f else 0.10f
+    val glow = base + tokens.glassAlpha * 0.16f
     Box(
         modifier
             .fillMaxSize()
@@ -26,14 +28,21 @@ fun GlossyBackground(
                 Brush.radialGradient(
                     colors = listOf(tokens.accent2.copy(alpha = glow), Color.Transparent),
                     center = Offset(0f, 0f),
-                    radius = 900f
+                    radius = 950f
                 )
             )
             .background(
                 Brush.radialGradient(
                     colors = listOf(tokens.accent.copy(alpha = glow), Color.Transparent),
                     center = Offset(Float.POSITIVE_INFINITY, Float.POSITIVE_INFINITY),
-                    radius = 1100f
+                    radius = 1150f
+                )
+            )
+            .background(
+                Brush.radialGradient(
+                    colors = listOf(tokens.accent.copy(alpha = glow * 0.5f), Color.Transparent),
+                    center = Offset(Float.POSITIVE_INFINITY, 0f),
+                    radius = 700f
                 )
             )
     ) {

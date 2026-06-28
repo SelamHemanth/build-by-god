@@ -16,6 +16,9 @@ interface ExerciseDao {
     @Query("SELECT * FROM exercises ORDER BY name")
     fun observeAll(): Flow<List<ExerciseEntity>>
 
+    @Query("SELECT * FROM exercises")
+    suspend fun getAll(): List<ExerciseEntity>
+
     @Query("SELECT * FROM exercises WHERE id = :id")
     fun observeById(id: String): Flow<ExerciseEntity?>
 

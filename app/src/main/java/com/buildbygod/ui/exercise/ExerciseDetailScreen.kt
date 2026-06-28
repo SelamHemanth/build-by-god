@@ -17,6 +17,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material3.Icon
@@ -40,6 +41,7 @@ import com.buildbygod.ui.components.DemoMedia
 import com.buildbygod.ui.components.GlassTopBar
 import com.buildbygod.ui.theme.AccentAmber
 import com.buildbygod.ui.theme.AccentGradient
+import com.buildbygod.ui.theme.AccentGreen
 import com.buildbygod.ui.theme.GlassCard
 import com.buildbygod.ui.theme.Ink
 import com.buildbygod.ui.theme.Surface2
@@ -80,6 +82,10 @@ fun ExerciseDetailScreen(
         val muscle = MuscleGroup.fromName(ex.muscleGroup)
         val equipment = Equipment.fromName(ex.equipment)
         val type = runCatching { ExerciseType.valueOf(ex.type) }.getOrDefault(ExerciseType.MAIN)
+        val meta = ExerciseGuide.parse(ex.tips)
+        val overview = ExerciseGuide.overview(ex.name, muscle, equipment, type, meta)
+        val coachTips = ExerciseGuide.tips(muscle, type, meta)
+        val steps = ex.instructions.split("\n").map { it.trim() }.filter { it.isNotBlank() }
 
         Column(
             Modifier
@@ -107,13 +113,41 @@ fun ExerciseDetailScreen(
                 )
             }
 
+            // ---- Muscles worked ----
+            GlassCard(Modifier.fillMaxWidth()) {
+                Text("Muscles worked", style = MaterialTheme.typography.titleMedium, color = TextPrimary, fontWeight = FontWeight.Bold)
+                Text(
+                    "Primary: ${muscle.label}",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = muscle.accent,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Spacer(Modifier.height(10.dp))
+                MuscleMap(group = muscle, accent = muscle.accent, modifier = Modifier.fillMaxWidth())
+                if (meta.tags.isNotEmpty()) {
+                    Spacer(Modifier.height(12.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        meta.tags.forEach { TagChip(it) }
+                    }
+                }
+            }
+
+            // ---- Overview ----
+            GlassCard(Modifier.fillMaxWidth()) {
+                Text("Overview", style = MaterialTheme.typography.titleMedium, color = TextPrimary, fontWeight = FontWeight.Bold)
+                Spacer(Modifier.height(6.dp))
+                Text(overview, style = MaterialTheme.typography.bodyMedium, color = TextSecondary)
+            }
+
+            // ---- Step by step ----
             GlassCard(Modifier.fillMaxWidth()) {
                 Text("How to do it", style = MaterialTheme.typography.titleMedium, color = TextPrimary, fontWeight = FontWeight.Bold)
+                Text("Step by step — take your time on each one.", style = MaterialTheme.typography.labelMedium, color = TextSecondary)
                 Spacer(Modifier.height(10.dp))
-                ex.instructions.split("\n").filter { it.isNotBlank() }.forEachIndexed { i, step ->
-                    Row(Modifier.padding(vertical = 5.dp)) {
+                steps.forEachIndexed { i, step ->
+                    Row(Modifier.padding(vertical = 6.dp)) {
                         Box(
-                            Modifier.size(24.dp).clip(CircleShape).background(AccentGradient),
+                            Modifier.size(26.dp).clip(CircleShape).background(AccentGradient),
                             contentAlignment = Alignment.Center
                         ) {
                             Text("${i + 1}", color = Ink, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
@@ -121,18 +155,32 @@ fun ExerciseDetailScreen(
                         Text(
                             step,
                             style = MaterialTheme.typography.bodyMedium,
-                            color = TextSecondary,
-                            modifier = Modifier.padding(start = 12.dp)
+                            color = TextPrimary,
+                            modifier = Modifier.padding(start = 12.dp, top = 2.dp)
                         )
                     }
                 }
             }
 
-            if (ex.tips.isNotBlank()) {
-                GlassCard(Modifier.fillMaxWidth()) {
-                    Text("Pro tip", style = MaterialTheme.typography.titleMedium, color = AccentAmber, fontWeight = FontWeight.Bold)
-                    Spacer(Modifier.height(6.dp))
-                    Text(ex.tips, style = MaterialTheme.typography.bodyMedium, color = TextSecondary)
+            // ---- Tips ----
+            GlassCard(Modifier.fillMaxWidth()) {
+                Text("Tips for good form", style = MaterialTheme.typography.titleMedium, color = AccentAmber, fontWeight = FontWeight.Bold)
+                Spacer(Modifier.height(8.dp))
+                coachTips.forEach { tip ->
+                    Row(Modifier.padding(vertical = 4.dp)) {
+                        Icon(
+                            Icons.Filled.CheckCircle,
+                            contentDescription = null,
+                            tint = AccentGreen,
+                            modifier = Modifier.size(18.dp).padding(top = 2.dp)
+                        )
+                        Text(
+                            tip,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = TextSecondary,
+                            modifier = Modifier.padding(start = 10.dp)
+                        )
+                    }
                 }
             }
 
@@ -143,6 +191,18 @@ fun ExerciseDetailScreen(
             )
             Spacer(Modifier.height(24.dp))
         }
+    }
+}
+
+@Composable
+private fun TagChip(text: String) {
+    Box(
+        Modifier
+            .clip(RoundedCornerShape(50))
+            .background(Surface2.copy(alpha = 0.7f))
+            .padding(horizontal = 12.dp, vertical = 6.dp)
+    ) {
+        Text(text, style = MaterialTheme.typography.labelMedium, color = TextPrimary, fontWeight = FontWeight.Medium)
     }
 }
 

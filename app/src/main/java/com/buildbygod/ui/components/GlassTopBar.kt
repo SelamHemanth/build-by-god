@@ -1,6 +1,5 @@
 package com.buildbygod.ui.components
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -20,8 +19,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.foundation.clickable
 import androidx.compose.ui.unit.dp
-import com.buildbygod.ui.theme.Surface2
 import com.buildbygod.ui.theme.TextPrimary
+import com.buildbygod.ui.theme.liquidGlass
 
 @Composable
 fun GlassTopBar(
@@ -40,8 +39,7 @@ fun GlassTopBar(
             Box(
                 Modifier
                     .size(40.dp)
-                    .clip(CircleShape)
-                    .background(Surface2.copy(alpha = 0.7f))
+                    .liquidGlass(CircleShape, bloom = false)
                     .clickable { onBack() },
                 contentAlignment = Alignment.Center
             ) {

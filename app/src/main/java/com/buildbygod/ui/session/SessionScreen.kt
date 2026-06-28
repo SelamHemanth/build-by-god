@@ -22,6 +22,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -31,11 +32,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.buildbygod.domain.model.ExerciseType
+import com.buildbygod.notifications.WorkoutSessionService
 import com.buildbygod.domain.model.MuscleGroup
 import com.buildbygod.ui.components.DemoMedia
 import com.buildbygod.ui.components.GlassTopBar
@@ -56,9 +59,29 @@ fun SessionScreen(
     vm: SessionViewModel = hiltViewModel()
 ) {
     val state by vm.state.collectAsStateWithLifecycle()
+    val context = LocalContext.current
 
     LaunchedEffect(state.finished) {
         if (state.finished) onFinish()
+    }
+
+    // Keep an ongoing notification (title, current exercise, live timer) while training, so it
+    // stays visible after the user backgrounds the app. Cleared when leaving the session.
+    LaunchedEffect(state.current?.exercise?.name, state.index, state.items.size, state.title, state.finished) {
+        val current = state.current
+        if (!state.finished && current != null && state.items.isNotEmpty()) {
+            WorkoutSessionService.start(
+                context = context,
+                title = state.title,
+                exercise = current.exercise.name,
+                position = state.index + 1,
+                total = state.items.size,
+                startedAt = vm.startedAt
+            )
+        }
+    }
+    DisposableEffect(Unit) {
+        onDispose { WorkoutSessionService.stop(context) }
     }
 
     Column(Modifier.fillMaxSize()) {
