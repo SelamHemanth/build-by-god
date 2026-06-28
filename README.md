@@ -25,15 +25,18 @@
 ---
 
 Plan your week, get reminders when it's time to train, follow guided workouts (warm-ups, exercises,
-stretches), and browse a muscle-grouped exercise library with how-tos and demo videos.
+stretches), and browse a **fully-offline** library of **1,100+ exercises** across **22 muscle groups** —
+including dedicated **warm-ups, stretches, and equipment-free home workouts** for every group — each
+with how-tos and a bundled looping demo animation.
 
-> **No account, no login, no credentials** — everything is stored locally on your device.
+> **100% offline.** No account, no login, no internet — every exercise, instruction, and demo clip
+> ships inside the app. Nothing is ever fetched from YouTube or the web.
 
 ## ⬇️ Download
 
 Ready-to-install builds live in this repo:
 
-- **Signed release:** [`apk/release/BuildByGod-v0.2.0.apk`](apk/release/BuildByGod-v0.2.0.apk)
+- **Signed release:** [`apk/release/BuildByGod-v0.3.0.apk`](apk/release/BuildByGod-v0.3.0.apk)
 - **Debug build:** [`apk/devel/BuildByGod-devel.apk`](apk/devel/BuildByGod-devel.apk)
 
 Copy the APK to an Android phone (Android 8.0 / API 26+), tap it, and allow installation from this source.
@@ -54,10 +57,16 @@ Copy the APK to an Android phone (Android 8.0 / API 26+), tap it, and allow inst
   reminder deep-links straight into that day's workout. Reminders survive reboots.
 - **Home dashboard** — today's workout, a week strip, streaks, and totals at a glance.
 - **Day detail** — split into Warm-up / Exercises / Stretches; add or remove moves per section.
-- **Exercise library** — browse by muscle target, search, favorite, and open rich detail pages
-  (step-by-step how-to, pro tips, an **animated demo clip**, and a "watch full video" YouTube link).
-- **Animated demo clips** — 26 common exercises ship with bundled looping demo animations that play
-  offline (rendered via Coil); the rest show a glossy placeholder with a "Full video" link.
+- **1,100+ exercise library, fully offline** — browse by muscle target across **22 groups** (Abs,
+  Obliques, Chest, Shoulders, Traps, Biceps, Triceps, Forearms, Palmar Fascia, Lats, Upper/Lower
+  Back, Neck, Glutes, Hip Flexors, Adductors, Abductors, Quads, Hamstrings, Calves, IT Band,
+  Plantar Fascia), search, favorite, and open rich detail pages (step-by-step how-to + pro tips).
+- **Warm-ups, stretches & home workouts per group** — each muscle group includes its own dynamic
+  warm-ups, cool-down stretches, and equipment-free (bodyweight / band / household-object) home
+  workouts, plus universal full-body warm-up and stretch routines.
+- **Bundled animated demos** — exercises ship with a looping animated-WebP demo that plays offline
+  (rendered via Coil), with a glossy placeholder where no clip exists. No YouTube, no streaming,
+  no network calls.
 - **Guided session mode** — step through a day's workout with set targets and built-in timers for
   timed moves, then log it to your history.
 - **Progress** — streak, weekly count, an 8-week activity heatmap, and recent session history.
@@ -70,7 +79,7 @@ Copy the APK to an Android phone (Android 8.0 / API 26+), tap it, and allow inst
 - **Hilt** for dependency injection
 - **Navigation-Compose**
 - **AlarmManager** + boot receiver for reminders
-- **Media3 / ExoPlayer** + Coil for demo media
+- **Coil** for offline animated-WebP demo playback (bundled in `assets/`)
 - Min SDK 26, Target SDK 35
 
 ## 📁 Project structure
@@ -112,14 +121,17 @@ echo "sdk.dir=/path/to/Android/Sdk" > local.properties
 ./gradlew :app:assembleDebug
 ```
 
-## 🎬 Demo videos / clips
+## 🎬 Offline demo clips
 
-Each exercise stores an optional `clipAsset` and a `youtubeUrl`:
+The whole catalogue is bundled in the app — no network is ever used:
 
-- `youtubeUrl` is seeded with a YouTube search link so "Watch full video" works out of the box.
-- `clipAsset` is `null` by default and renders a glossy placeholder. To bundle real looping demos,
-  drop files in `app/src/main/assets/clips/` (e.g. `pushup.mp4`) and set the matching `clipAsset`
-  value in `data/local/SeedData.kt` (e.g. `clips/pushup.mp4`). They will then play inline via ExoPlayer.
+- `app/src/main/assets/exercises.json` — all **1,100+ exercises** (name, type, muscle group, equipment,
+  step-by-step instructions, tips, and the demo clip filename).
+- `app/src/main/assets/clips/*.webp` — looping **animated WebP** demo clips (~20 MB total),
+  played inline via Coil. On Android 9+ they animate; on 8.x they show the first frame.
+
+On first launch `DatabaseSeeder` reads the JSON, seeds Room, and builds a balanced 7-day starter plan
+from the seeded exercises. Demo frames are derived from the public-domain free-exercise-db (Unlicense).
 
 ## 🔔 Notifications
 
@@ -129,15 +141,15 @@ after a reboot via `BootReceiver`.
 
 ## 📝 Notes
 
-- All data is local; there is no backend and no analytics.
-- First launch seeds a curated exercise library and a sensible 7-day starter plan, which you can
+- 100% offline — no backend, no analytics, no network permission needed for content.
+- First launch seeds the full 1,100+ exercise library and a sensible 7-day starter plan, which you can
   fully customize.
 
 ## 🙏 Credits
 
-- Exercise demo animations are generated from start/end frames of the
+- Exercise data and demo animations are derived from the
   [free-exercise-db](https://github.com/yuhonas/free-exercise-db) (released under the **Unlicense** /
-  public domain).
+  public domain). All content is bundled and used offline.
 
 ## ⚖️ License
 

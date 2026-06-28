@@ -15,20 +15,33 @@ enum class ExerciseType(val label: String) {
 }
 
 enum class MuscleGroup(val label: String, val accent: Color) {
+    ABS("Abs", AccentAmber),
+    OBLIQUES("Obliques", AccentBlue),
     CHEST("Chest", AccentPink),
-    BACK("Back", AccentBlue),
     SHOULDERS("Shoulders", AccentAmber),
-    ARMS("Arms", AccentViolet),
-    LEGS("Legs", AccentGreen),
+    TRAPS("Traps", AccentViolet),
+    BICEPS("Biceps", AccentGreen),
+    TRICEPS("Triceps", AccentPink),
+    FOREARMS("Forearms", AccentBlue),
+    PALMAR_FASCIA("Palmar Fascia", AccentAmber),
+    LATS("Lats", AccentViolet),
+    UPPER_BACK("Upper Back", AccentBlue),
+    LOWER_BACK("Lower Back", AccentGreen),
+    NECK("Neck", AccentPink),
     GLUTES("Glutes", AccentPink),
-    CORE("Core", AccentAmber),
-    FULL_BODY("Full Body", AccentViolet),
-    CARDIO("Cardio", AccentBlue),
-    MOBILITY("Mobility", AccentGreen);
+    HIP_FLEXORS("Hip Flexors", AccentViolet),
+    ADDUCTORS("Adductors", AccentGreen),
+    ABDUCTORS("Abductors", AccentBlue),
+    QUADS("Quads", AccentGreen),
+    HAMSTRINGS("Hamstrings", AccentAmber),
+    CALVES("Calves", AccentViolet),
+    IT_BAND("IT Band", AccentPink),
+    PLANTAR_FASCIA("Plantar Fascia", AccentGreen),
+    FULL_BODY("Full Body", AccentViolet);
 
     companion object {
         fun fromName(name: String?): MuscleGroup =
-            entries.firstOrNull { it.name == name } ?: FULL_BODY
+            entries.firstOrNull { it.name == name } ?: ABS
     }
 }
 

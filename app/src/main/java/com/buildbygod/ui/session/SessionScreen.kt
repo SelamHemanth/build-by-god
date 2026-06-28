@@ -123,8 +123,7 @@ fun SessionScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .aspectRatio(16f / 10f)
-                    .clip(RoundedCornerShape(22.dp)),
-                onPlayExternal = {}
+                    .clip(RoundedCornerShape(22.dp))
             )
 
             if (current.exercise.durationSeconds > 0) {

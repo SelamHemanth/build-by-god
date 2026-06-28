@@ -1,7 +1,5 @@
 package com.buildbygod.ui.exercise
 
-import android.content.Intent
-import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -19,7 +17,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.PlayCircle
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material3.Icon
@@ -32,7 +29,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -56,8 +52,6 @@ fun ExerciseDetailScreen(
     vm: ExerciseDetailViewModel = hiltViewModel()
 ) {
     val exercise by vm.exercise.collectAsStateWithLifecycle()
-    val context = LocalContext.current
-
     Column(Modifier.fillMaxSize()) {
         val ex = exercise
         GlassTopBar(
@@ -101,12 +95,7 @@ fun ExerciseDetailScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .aspectRatio(16f / 10f)
-                    .clip(RoundedCornerShape(22.dp)),
-                onPlayExternal = {
-                    ex.youtubeUrl?.let {
-                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(it)))
-                    }
-                }
+                    .clip(RoundedCornerShape(22.dp))
             )
 
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -144,21 +133,6 @@ fun ExerciseDetailScreen(
                     Text("Pro tip", style = MaterialTheme.typography.titleMedium, color = AccentAmber, fontWeight = FontWeight.Bold)
                     Spacer(Modifier.height(6.dp))
                     Text(ex.tips, style = MaterialTheme.typography.bodyMedium, color = TextSecondary)
-                }
-            }
-
-            if (ex.youtubeUrl != null) {
-                GlassCard(
-                    Modifier.fillMaxWidth(),
-                    onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(ex.youtubeUrl))) }
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Filled.PlayCircle, contentDescription = null, tint = muscle.accent, modifier = Modifier.size(28.dp))
-                        Column(Modifier.padding(start = 12.dp)) {
-                            Text("Watch full video", style = MaterialTheme.typography.titleMedium, color = TextPrimary)
-                            Text("Open a demo on YouTube", style = MaterialTheme.typography.labelMedium, color = TextSecondary)
-                        }
-                    }
                 }
             }
 
