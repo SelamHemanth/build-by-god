@@ -18,6 +18,39 @@ object SeedData {
     private fun yt(query: String) =
         "https://www.youtube.com/results?search_query=" + query.replace(" ", "+") + "+how+to"
 
+    /**
+     * Bundled looping demo clips (animated GIFs in assets/clips), keyed by exercise id.
+     * Frames are derived from the public-domain free-exercise-db (Unlicense).
+     */
+    private val clipById: Map<String, String> = mapOf(
+        "ch_bench_press" to "clips/ch_bench_press.gif",
+        "ch_incline_db_press" to "clips/ch_incline_db_press.gif",
+        "ch_pushup" to "clips/ch_pushup.gif",
+        "ch_cable_fly" to "clips/ch_cable_fly.gif",
+        "bk_pullup" to "clips/bk_pullup.gif",
+        "bk_bent_row" to "clips/bk_bent_row.gif",
+        "bk_lat_pulldown" to "clips/bk_lat_pulldown.gif",
+        "bk_seated_row" to "clips/bk_seated_row.gif",
+        "lg_back_squat" to "clips/lg_back_squat.gif",
+        "lg_rdl" to "clips/lg_rdl.gif",
+        "lg_lunge" to "clips/lg_lunge.gif",
+        "lg_leg_press" to "clips/lg_leg_press.gif",
+        "lg_calf_raise" to "clips/lg_calf_raise.gif",
+        "sh_ohp" to "clips/sh_ohp.gif",
+        "sh_lateral_raise" to "clips/sh_lateral_raise.gif",
+        "sh_face_pull" to "clips/sh_face_pull.gif",
+        "ar_db_curl" to "clips/ar_db_curl.gif",
+        "ar_tricep_pushdown" to "clips/ar_tricep_pushdown.gif",
+        "ar_hammer_curl" to "clips/ar_hammer_curl.gif",
+        "co_plank" to "clips/co_plank.gif",
+        "co_hanging_raise" to "clips/co_hanging_raise.gif",
+        "co_russian_twist" to "clips/co_russian_twist.gif",
+        "gl_hip_thrust" to "clips/gl_hip_thrust.gif",
+        "gl_glute_bridge" to "clips/gl_glute_bridge.gif",
+        "wu_jumping_jacks" to "clips/wu_jumping_jacks.gif",
+        "wu_bodyweight_squat" to "clips/wu_bodyweight_squat.gif",
+    )
+
     private fun ex(
         id: String,
         name: String,
@@ -40,7 +73,7 @@ object SeedData {
         defaultSets = sets,
         defaultReps = reps,
         durationSeconds = duration,
-        clipAsset = null,
+        clipAsset = clipById[id],
         youtubeUrl = yt(name)
     )
 

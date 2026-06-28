@@ -1,45 +1,42 @@
 package com.buildbygod.ui.components
 
-import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.FitnessCenter
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.viewinterop.AndroidView
-import androidx.media3.common.MediaItem
-import androidx.media3.common.Player
-import androidx.media3.exoplayer.ExoPlayer
-import androidx.media3.ui.AspectRatioFrameLayout
-import androidx.media3.ui.PlayerView
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.buildbygod.ui.theme.AccentBlue
 import com.buildbygod.ui.theme.AccentViolet
 import com.buildbygod.ui.theme.Ink
 
 /**
- * Shows a looping bundled demo clip when [clipAsset] is set (file under app assets, e.g.
- * "clips/pushup.mp4"); otherwise renders a glossy placeholder. Tapping the placeholder triggers
- * [onPlayExternal] (used to open the YouTube link).
+ * Shows a looping bundled demo clip when [clipAsset] is set (an animated GIF/WebP under app assets,
+ * e.g. "clips/ch_pushup.gif") rendered via Coil; otherwise renders a glossy placeholder.
+ * A small "Full video" pill (when a YouTube link exists) and tapping the placeholder both trigger
+ * [onPlayExternal].
  */
-@androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 @Composable
 fun DemoMedia(
     clipAsset: String?,
@@ -50,26 +47,31 @@ fun DemoMedia(
 ) {
     if (clipAsset != null) {
         val context = LocalContext.current
-        val player = remember {
-            ExoPlayer.Builder(context).build().apply {
-                setMediaItem(MediaItem.fromUri(Uri.parse("asset:///$clipAsset")))
-                repeatMode = Player.REPEAT_MODE_ALL
-                volume = 0f
-                playWhenReady = true
-                prepare()
-            }
+        Box(modifier.clip(RoundedCornerShape(0.dp))) {
+            AsyncImage(
+                model = ImageRequest.Builder(context)
+                    .data("file:///android_asset/$clipAsset")
+                    .crossfade(true)
+                    .build(),
+                contentDescription = "$label demo",
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
+            )
+            // subtle top gradient for legibility of the overlay pill
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(Color.Transparent, Color.Transparent, Ink.copy(alpha = 0.55f))
+                        )
+                    )
+            )
+            FullVideoPill(
+                modifier = Modifier.align(Alignment.BottomEnd).padding(10.dp),
+                onClick = onPlayExternal
+            )
         }
-        DisposableEffect(Unit) { onDispose { player.release() } }
-        AndroidView(
-            modifier = modifier,
-            factory = {
-                PlayerView(it).apply {
-                    useController = true
-                    resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM
-                    this.player = player
-                }
-            }
-        )
     } else {
         Box(
             modifier
@@ -106,5 +108,21 @@ fun DemoMedia(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun FullVideoPill(modifier: Modifier = Modifier, onClick: () -> Unit) {
+    Row(
+        modifier
+            .clip(RoundedCornerShape(50))
+            .background(Brush.linearGradient(listOf(AccentBlue, AccentViolet)))
+            .clickable { onClick() }
+            .padding(horizontal = 12.dp, vertical = 7.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        Icon(Icons.Filled.PlayArrow, contentDescription = null, tint = Ink, modifier = Modifier.size(18.dp))
+        Text("Full video", color = Ink, fontWeight = FontWeight.Bold)
     }
 }

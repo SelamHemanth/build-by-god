@@ -19,7 +19,7 @@ import com.buildbygod.data.local.entity.WorkoutDayEntity
         SessionLogEntity::class,
         BodyWeightEntity::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 abstract class BuildByGodDatabase : RoomDatabase() {

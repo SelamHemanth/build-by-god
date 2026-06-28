@@ -31,13 +31,12 @@ stretches), and browse a muscle-grouped exercise library with how-tos and demo v
 
 ## ⬇️ Download
 
-A ready-to-install debug build lives in this repo:
+Ready-to-install builds live in this repo:
 
-```
-apk/devel/BuildByGod-devel.apk
-```
+- **Signed release:** [`apk/release/BuildByGod-v0.2.0.apk`](apk/release/BuildByGod-v0.2.0.apk)
+- **Debug build:** [`apk/devel/BuildByGod-devel.apk`](apk/devel/BuildByGod-devel.apk)
 
-Copy it to an Android phone (Android 8.0 / API 26+), tap it, and allow installation from this source.
+Copy the APK to an Android phone (Android 8.0 / API 26+), tap it, and allow installation from this source.
 
 ## ✨ Features
 
@@ -56,7 +55,9 @@ Copy it to an Android phone (Android 8.0 / API 26+), tap it, and allow installat
 - **Home dashboard** — today's workout, a week strip, streaks, and totals at a glance.
 - **Day detail** — split into Warm-up / Exercises / Stretches; add or remove moves per section.
 - **Exercise library** — browse by muscle target, search, favorite, and open rich detail pages
-  (step-by-step how-to, pro tips, a demo clip placeholder, and a "watch full video" YouTube link).
+  (step-by-step how-to, pro tips, an **animated demo clip**, and a "watch full video" YouTube link).
+- **Animated demo clips** — 26 common exercises ship with bundled looping demo animations that play
+  offline (rendered via Coil); the rest show a glossy placeholder with a "Full video" link.
 - **Guided session mode** — step through a day's workout with set targets and built-in timers for
   timed moves, then log it to your history.
 - **Progress** — streak, weekly count, an 8-week activity heatmap, and recent session history.
@@ -131,6 +132,12 @@ after a reboot via `BootReceiver`.
 - All data is local; there is no backend and no analytics.
 - First launch seeds a curated exercise library and a sensible 7-day starter plan, which you can
   fully customize.
+
+## 🙏 Credits
+
+- Exercise demo animations are generated from start/end frames of the
+  [free-exercise-db](https://github.com/yuhonas/free-exercise-db) (released under the **Unlicense** /
+  public domain).
 
 ## ⚖️ License
 
