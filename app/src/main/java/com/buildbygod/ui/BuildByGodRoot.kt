@@ -130,8 +130,7 @@ private fun MainScaffold(startDayDeepLink: String?) {
             composable(Routes.HOME) {
                 HomeScreen(
                     onOpenDay = { navController.navigate(Routes.dayDetail(it)) },
-                    onStartSession = { navController.navigate(Routes.session(it)) },
-                    onOpenLibrary = { navController.navigate(Routes.LIBRARY) }
+                    onStartSession = { navController.navigate(Routes.session(it)) }
                 )
             }
             composable(Routes.PLAN) {

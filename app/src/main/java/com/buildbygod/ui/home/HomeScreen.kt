@@ -13,11 +13,13 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.LocalFireDepartment
+import androidx.compose.material.icons.filled.TipsAndUpdates
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -46,13 +48,13 @@ import com.buildbygod.ui.theme.TextPrimary
 import com.buildbygod.ui.theme.TextSecondary
 import com.buildbygod.ui.util.dayShort
 import com.buildbygod.ui.util.minutesToTimeLabel
+import java.time.LocalDate
 import java.time.LocalTime
 
 @Composable
 fun HomeScreen(
     onOpenDay: (Int) -> Unit,
     onStartSession: (Int) -> Unit,
-    onOpenLibrary: () -> Unit,
     vm: HomeViewModel = hiltViewModel()
 ) {
     val state by vm.state.collectAsStateWithLifecycle()
@@ -107,14 +109,60 @@ fun HomeScreen(
         }
 
         item {
-            GlassCard(Modifier.fillMaxWidth(), onClick = onOpenLibrary) {
-                Text("Browse the exercise library", style = MaterialTheme.typography.titleMedium, color = TextPrimary)
-                Text("Find moves by muscle target with demos & how-tos", style = MaterialTheme.typography.labelMedium, color = TextSecondary)
-            }
+            DailyTipCard()
             Spacer(Modifier.height(90.dp))
         }
     }
 }
+
+@Composable
+private fun DailyTipCard() {
+    val tip = tipOfTheDay()
+    GlassCard(Modifier.fillMaxWidth()) {
+        Row(verticalAlignment = Alignment.Top) {
+            Box(
+                Modifier
+                    .size(42.dp)
+                    .clip(RoundedCornerShape(13.dp))
+                    .background(AccentGradient),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(Icons.Filled.TipsAndUpdates, null, tint = Ink, modifier = Modifier.size(24.dp))
+            }
+            Spacer(Modifier.width(12.dp))
+            Column {
+                Text(
+                    "TIP OF THE DAY",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = AccentAmber,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(tip, style = MaterialTheme.typography.bodyMedium, color = TextPrimary)
+            }
+        }
+    }
+}
+
+private val dailyTips = listOf(
+    "Progressive overload is king — add a little weight, a rep, or a set over time to keep growing.",
+    "Protein fuels muscle repair. Aim for a palm-sized portion at every meal.",
+    "Warm up first. 5 minutes of light movement primes your joints and cuts injury risk.",
+    "Sleep is when you actually build muscle. Target 7–9 hours a night.",
+    "Form over ego. Controlled reps with good technique beat sloppy heavy lifts.",
+    "Stay hydrated — even mild dehydration saps strength and focus. Sip throughout the day.",
+    "Rest days are growth days. Recovery lets your body adapt and get stronger.",
+    "Full range of motion builds more muscle than half-reps with heavier weight.",
+    "Consistency beats intensity. Showing up 4x a week for months wins every time.",
+    "Breathe out on exertion, in on the way down — never hold your breath under load.",
+    "Don't skip legs. Big lower-body lifts drive whole-body strength and conditioning.",
+    "Track your workouts. What gets measured gets improved.",
+    "Stretch after training while muscles are warm to keep mobility in check.",
+    "A small calorie surplus builds muscle; a small deficit burns fat. Pick a goal and be patient.",
+)
+
+private fun tipOfTheDay(): String =
+    dailyTips[(LocalDate.now().dayOfYear - 1).mod(dailyTips.size)]
 
 @Composable
 private fun TodayCard(
