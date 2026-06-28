@@ -18,8 +18,13 @@ data class LibraryUiState(
     val query: String = "",
     val selectedMuscle: MuscleGroup? = null,
     val favoritesOnly: Boolean = false,
-    val grouped: Map<MuscleGroup, List<ExerciseEntity>> = emptyMap()
-)
+    val grouped: Map<MuscleGroup, List<ExerciseEntity>> = emptyMap(),
+    /** Total exercises per muscle group, for the group picker grid. */
+    val groupCounts: Map<MuscleGroup, Int> = emptyMap()
+) {
+    /** Show the group-icon grid only when nothing is being filtered. */
+    val showGroups: Boolean get() = query.isBlank() && selectedMuscle == null && !favoritesOnly
+}
 
 @HiltViewModel
 class LibraryViewModel @Inject constructor(
@@ -43,12 +48,20 @@ class LibraryViewModel @Inject constructor(
             .toList()
         val grouped = filtered.groupBy { MuscleGroup.fromName(it.muscleGroup) }
             .toSortedMap(compareBy { it.ordinal })
-        LibraryUiState(q, muscle, favOnly, grouped)
+        val counts = all.groupingBy { MuscleGroup.fromName(it.muscleGroup) }.eachCount()
+        LibraryUiState(q, muscle, favOnly, grouped, counts)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), LibraryUiState())
 
     fun onQuery(q: String) = query.update { q }
     fun onMuscle(m: MuscleGroup?) = selectedMuscle.update { if (it == m) null else m }
     fun toggleFavoritesOnly() = favoritesOnly.update { !it }
+
+    /** Reset all filters and return to the group-icon grid. */
+    fun backToGroups() {
+        query.update { "" }
+        selectedMuscle.update { null }
+        favoritesOnly.update { false }
+    }
     fun toggleFavorite(id: String, fav: Boolean) {
         viewModelScope.launch { repo.setFavorite(id, fav) }
     }
