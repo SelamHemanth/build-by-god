@@ -3,6 +3,7 @@ package com.buildbygod.ui.session
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.buildbygod.data.datastore.ActiveSessionStore
 import com.buildbygod.data.local.dao.DayExerciseWithInfo
 import com.buildbygod.data.local.entity.SessionLogEntity
 import com.buildbygod.data.repository.ProgressRepository
@@ -23,6 +24,7 @@ data class SessionUiState(
     val items: List<DayExerciseWithInfo> = emptyList(),
     val index: Int = 0,
     val completed: Set<Long> = emptySet(),
+    val paused: Boolean = false,
     val finished: Boolean = false
 ) {
     val current: DayExerciseWithInfo? get() = items.getOrNull(index)
@@ -34,11 +36,13 @@ data class SessionUiState(
 class SessionViewModel @Inject constructor(
     private val workoutRepo: WorkoutRepository,
     private val progressRepo: ProgressRepository,
+    private val activeSessionStore: ActiveSessionStore,
     savedState: SavedStateHandle
 ) : ViewModel() {
 
     private val day: Int = savedState["day"] ?: 1
-    val startedAt = System.currentTimeMillis()
+    var startedAt = System.currentTimeMillis()
+        private set
 
     private val _state = MutableStateFlow(SessionUiState())
     val state = _state.asStateFlow()
@@ -50,7 +54,27 @@ class SessionViewModel @Inject constructor(
                 compareBy({ sectionOrder(it.dxSection) }, { it.dxOrder })
             )
             val title = workoutRepo.day(day).first()?.title ?: "Workout"
-            _state.update { it.copy(loading = false, items = ordered, title = title) }
+
+            // Resume an existing in-progress session for this day, otherwise start fresh.
+            val existing = activeSessionStore.session.first()
+            if (existing.active && existing.day == day) {
+                val restoredIds = existing.completedIdSet().filter { id -> ordered.any { it.dxId == id } }.toSet()
+                startedAt = System.currentTimeMillis() - existing.elapsedSeconds() * 1000
+                _state.update {
+                    it.copy(
+                        loading = false,
+                        items = ordered,
+                        title = title,
+                        index = existing.index.coerceIn(0, (ordered.size - 1).coerceAtLeast(0)),
+                        completed = restoredIds,
+                        paused = false
+                    )
+                }
+                activeSessionStore.setPaused(false)
+            } else {
+                _state.update { it.copy(loading = false, items = ordered, title = title) }
+                activeSessionStore.begin(day, title, ordered.size)
+            }
         }
     }
 
@@ -60,24 +84,42 @@ class SessionViewModel @Inject constructor(
         else -> 2
     }
 
+    private fun persistProgress(s: SessionUiState) {
+        viewModelScope.launch { activeSessionStore.updateProgress(s.index, s.completed) }
+    }
+
     fun markDoneAndNext() {
         _state.update { s ->
             val current = s.current ?: return@update s
             val completed = s.completed + current.dxId
-            if (s.isLast) {
-                s.copy(completed = completed)
-            } else {
-                s.copy(completed = completed, index = s.index + 1)
-            }
+            val next = if (s.isLast) s.copy(completed = completed)
+            else s.copy(completed = completed, index = s.index + 1)
+            persistProgress(next)
+            next
         }
     }
 
     fun skipNext() {
-        _state.update { if (it.isLast) it else it.copy(index = it.index + 1) }
+        _state.update {
+            val next = if (it.isLast) it else it.copy(index = it.index + 1)
+            persistProgress(next)
+            next
+        }
     }
 
     fun goPrevious() {
-        _state.update { if (it.index > 0) it.copy(index = it.index - 1) else it }
+        _state.update {
+            val next = if (it.index > 0) it.copy(index = it.index - 1) else it
+            persistProgress(next)
+            next
+        }
+    }
+
+    /** Mark the session paused or running; persisted so Home and the notification stay in sync. */
+    fun setPaused(paused: Boolean) {
+        if (_state.value.finished) return
+        _state.update { it.copy(paused = paused) }
+        viewModelScope.launch { activeSessionStore.setPaused(paused) }
     }
 
     fun finish() {
@@ -93,6 +135,7 @@ class SessionViewModel @Inject constructor(
                     durationSeconds = (System.currentTimeMillis() - startedAt) / 1000
                 )
             )
+            activeSessionStore.clear()
             _state.update { it.copy(finished = true) }
         }
     }

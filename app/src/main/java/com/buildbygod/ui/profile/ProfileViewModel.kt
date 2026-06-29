@@ -32,8 +32,7 @@ data class WorkoutStats(
 data class ProfileUiState(
     val profile: UserProfile = UserProfile(),
     val stats: WorkoutStats = WorkoutStats(),
-    val nutrition: NutritionPlan? = null,
-    val users: List<UserProfile> = emptyList()
+    val nutrition: NutritionPlan? = null
 )
 
 @HiltViewModel
@@ -44,7 +43,7 @@ class ProfileViewModel @Inject constructor(
 
     private val today = LocalDate.now().toEpochDay()
 
-    val state = combine(repo.profile, progressRepo.sessions(), repo.users) { profile, sessions, users ->
+    val state = combine(repo.profile, progressRepo.sessions()) { profile, sessions ->
         val weight = if (profile.weightKg > 0f) profile.weightKg else profile.startWeight
         val activeDays = sessions.map { it.epochDay }.toSet()
         val weekStart = today - 6
@@ -61,7 +60,7 @@ class ProfileViewModel @Inject constructor(
         val nutrition = if (NutritionCalculator.isComplete(weight, profile.heightCm, profile.age)) {
             NutritionCalculator.compute(profile.sex, weight, profile.heightCm, profile.age, profile.activityLevel, profile.primaryGoal)
         } else null
-        ProfileUiState(profile, stats, nutrition, users)
+        ProfileUiState(profile, stats, nutrition)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ProfileUiState())
 
     private fun computeStreak(days: Set<Long>): Int {
@@ -90,10 +89,6 @@ class ProfileViewModel @Inject constructor(
     fun setExperience(level: ExperienceLevel) = update { it.copy(experience = level) }
     fun setPhoto(uri: String?) = update { it.copy(photoUri = uri) }
     fun setFrame(index: Int) = update { it.copy(profileFrame = index) }
-
-    fun addUser(name: String) = viewModelScope.launch { repo.addUser(name) }
-    fun switchUser(id: String) = viewModelScope.launch { repo.switchUser(id) }
-    fun removeUser(id: String) = viewModelScope.launch { repo.removeUser(id) }
 
     private fun update(transform: (UserProfile) -> UserProfile) {
         viewModelScope.launch { repo.update(transform) }

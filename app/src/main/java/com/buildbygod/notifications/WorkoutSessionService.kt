@@ -28,6 +28,7 @@ class WorkoutSessionService : Service() {
     private var exercise = ""
     private var position = 0
     private var total = 0
+    private var paused = false
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -63,6 +64,7 @@ class WorkoutSessionService : Service() {
         intent?.getStringExtra(EXTRA_EXERCISE)?.let { exercise = it }
         position = intent?.getIntExtra(EXTRA_POSITION, position) ?: position
         total = intent?.getIntExtra(EXTRA_TOTAL, total) ?: total
+        paused = intent?.getBooleanExtra(EXTRA_PAUSED, paused) ?: paused
 
         val notification = buildNotification()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
@@ -84,17 +86,18 @@ class WorkoutSessionService : Service() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        val progressText = if (total > 0) "$exercise  ·  $position/$total" else exercise
+        val base = if (total > 0) "$exercise  ·  $position/$total" else exercise
+        val progressText = if (paused) "Paused · $base" else base
 
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notification)
-            .setContentTitle(title)
+            .setContentTitle(if (paused) "$title (paused)" else title)
             .setContentText(progressText)
             .setContentIntent(pending)
             .setOngoing(true)
             .setOnlyAlertOnce(true)
-            .setShowWhen(true)
-            .setUsesChronometer(true)
+            .setShowWhen(!paused)
+            .setUsesChronometer(!paused)
             .setWhen(startedAt)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setCategory(NotificationCompat.CATEGORY_WORKOUT)
@@ -113,9 +116,18 @@ class WorkoutSessionService : Service() {
         private const val EXTRA_POSITION = "position"
         private const val EXTRA_TOTAL = "total"
         private const val EXTRA_STARTED_AT = "startedAt"
+        private const val EXTRA_PAUSED = "paused"
 
         /** Start (or refresh) the live workout notification. */
-        fun start(context: Context, title: String, exercise: String, position: Int, total: Int, startedAt: Long) {
+        fun start(
+            context: Context,
+            title: String,
+            exercise: String,
+            position: Int,
+            total: Int,
+            startedAt: Long,
+            paused: Boolean = false
+        ) {
             val intent = Intent(context, WorkoutSessionService::class.java).apply {
                 action = ACTION_START
                 putExtra(EXTRA_TITLE, title)
@@ -123,6 +135,7 @@ class WorkoutSessionService : Service() {
                 putExtra(EXTRA_POSITION, position)
                 putExtra(EXTRA_TOTAL, total)
                 putExtra(EXTRA_STARTED_AT, startedAt)
+                putExtra(EXTRA_PAUSED, paused)
             }
             // Can be called from lifecycle callbacks; guard against background-start limits (API 31+).
             runCatching { ContextCompat.startForegroundService(context, intent) }

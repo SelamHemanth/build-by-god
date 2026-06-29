@@ -17,5 +17,7 @@ data class DayExerciseCrossRef(
     val section: String,
     val orderIndex: Int,
     val sets: Int,
-    val reps: String
+    val reps: String,
+    /** Per-day duration override in seconds for timed moves. -1 = use the exercise default. */
+    val durationSeconds: Int = -1
 )

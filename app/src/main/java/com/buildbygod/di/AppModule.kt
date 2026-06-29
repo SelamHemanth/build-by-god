@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.Room
 import com.buildbygod.data.local.BuildByGodDatabase
 import com.buildbygod.data.local.dao.ExerciseDao
+import com.buildbygod.data.local.dao.IntakeDao
 import com.buildbygod.data.local.dao.ProgressDao
 import com.buildbygod.data.local.dao.WorkoutDao
 import dagger.Module
@@ -32,4 +33,7 @@ object AppModule {
 
     @Provides
     fun provideProgressDao(db: BuildByGodDatabase): ProgressDao = db.progressDao()
+
+    @Provides
+    fun provideIntakeDao(db: BuildByGodDatabase): IntakeDao = db.intakeDao()
 }

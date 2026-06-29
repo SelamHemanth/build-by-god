@@ -14,6 +14,18 @@ enum class ExerciseType(val label: String) {
     STRETCH("Stretch")
 }
 
+/** Skill/effort tier used to organise the library and tailor suggestions. */
+enum class Difficulty(val label: String, val rank: Int, val accent: Color) {
+    BEGINNER("Beginner", 0, AccentGreen),
+    INTERMEDIATE("Intermediate", 1, AccentBlue),
+    ADVANCED("Advanced", 2, AccentPink);
+
+    companion object {
+        fun fromName(name: String?): Difficulty =
+            entries.firstOrNull { it.name == name } ?: BEGINNER
+    }
+}
+
 enum class MuscleGroup(val label: String, val accent: Color) {
     ABS("Abs", AccentAmber),
     OBLIQUES("Obliques", AccentBlue),
@@ -82,7 +94,6 @@ enum class ExperienceLevel(val label: String, val duration: String, val blurb: S
 /** How the user prefers to enter/see their height. Canonical storage is always centimetres. */
 enum class HeightUnit(val label: String) {
     CM("cm"),
-    FT_IN("ft / in"),
     IN("inch");
 
     companion object {
@@ -109,11 +120,6 @@ object UnitConvert {
 
     fun cmToInches(cm: Int): Double = cm / CM_PER_IN
     fun inchesToCm(inches: Double): Int = Math.round(inches * CM_PER_IN).toInt()
-    fun cmToFeetInches(cm: Int): Pair<Int, Int> {
-        val totalIn = Math.round(cm / CM_PER_IN).toInt()
-        return (totalIn / 12) to (totalIn % 12)
-    }
-    fun feetInchesToCm(feet: Int, inches: Int): Int = inchesToCm(feet * 12.0 + inches)
 
     fun kgToLb(kg: Float): Double = kg * LB_PER_KG
     fun lbToKg(lb: Double): Float = (lb / LB_PER_KG).toFloat()
@@ -124,7 +130,6 @@ object UnitConvert {
     fun formatHeight(cm: Int, unit: HeightUnit): String = when (unit) {
         HeightUnit.CM -> "$cm cm"
         HeightUnit.IN -> "${Math.round(cmToInches(cm))} in"
-        HeightUnit.FT_IN -> cmToFeetInches(cm).let { (ft, inch) -> "$ft' $inch\"" }
     }
 
     /** Pretty weight label for the chosen unit, from canonical kg. */

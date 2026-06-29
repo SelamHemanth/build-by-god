@@ -16,6 +16,9 @@ object Routes {
     const val PROFILE = "profile"
 
     const val SETTINGS = "settings"
+    const val MANAGE_PROFILE = "manageProfile"
+    const val BREATHING = "breathing"
+    const val DIET = "diet"
     const val DAY_DETAIL = "day/{day}"
     const val EXERCISE_DETAIL = "exercise/{exerciseId}"
     const val SESSION = "session/{day}"

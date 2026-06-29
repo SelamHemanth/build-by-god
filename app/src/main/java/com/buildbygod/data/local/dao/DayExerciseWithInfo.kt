@@ -10,5 +10,9 @@ data class DayExerciseWithInfo(
     val dxSection: String,
     val dxOrder: Int,
     val dxSets: Int,
-    val dxReps: String
-)
+    val dxReps: String,
+    val dxDuration: Int = -1
+) {
+    /** Duration to actually use: the per-day override if set, otherwise the exercise default. */
+    val effectiveDuration: Int get() = if (dxDuration >= 0) dxDuration else exercise.durationSeconds
+}

@@ -11,6 +11,8 @@ data class ExerciseEntity(
     val type: String,
     /** MuscleGroup name */
     val muscleGroup: String,
+    /** Difficulty name: BEGINNER / INTERMEDIATE / ADVANCED */
+    val difficulty: String = "BEGINNER",
     /** Equipment name */
     val equipment: String,
     /** Newline-separated step-by-step instructions. */

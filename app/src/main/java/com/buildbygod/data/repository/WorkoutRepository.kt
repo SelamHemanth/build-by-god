@@ -1,6 +1,7 @@
 package com.buildbygod.data.repository
 
 import android.content.Context
+import com.buildbygod.data.local.DayPlanner
 import com.buildbygod.data.local.PlanGenerator
 import com.buildbygod.data.local.dao.DayExerciseWithInfo
 import com.buildbygod.data.local.dao.ExerciseDao
@@ -43,7 +44,36 @@ class WorkoutRepository @Inject constructor(
         TodayWidgetProvider.refresh(context)
     }
 
-    suspend fun addExerciseToDay(day: Int, exerciseId: String, section: String, sets: Int, reps: String) {
+    /**
+     * Renames a day and regenerates its warm-up / main / stretch exercises from the implied muscle
+     * groups, tailored to the user's experience and goal. Used by the weekly-plan auto-suggest.
+     */
+    suspend fun autoFillDayFromName(
+        day: Int,
+        name: String,
+        experience: ExperienceLevel,
+        goal: Goal
+    ) {
+        val exercises = exerciseDao.getAll()
+        if (exercises.isEmpty()) return
+        val gen = DayPlanner.build(name, exercises, experience, goal)
+        val existing = dao.getDay(day)
+        val updatedDay = (existing ?: WorkoutDayEntity(day, gen.title, gen.focus))
+            .copy(title = gen.title, focus = gen.focus, isRestDay = false)
+        dao.upsertDay(updatedDay)
+        dao.clearDay(day)
+        dao.insertDayExercises(gen.refs.map { it.copy(dayOfWeek = day) })
+        TodayWidgetProvider.refresh(context)
+    }
+
+    suspend fun addExerciseToDay(
+        day: Int,
+        exerciseId: String,
+        section: String,
+        sets: Int,
+        reps: String,
+        durationSeconds: Int = -1
+    ) {
         val nextOrder = (dao.maxOrder(day, section) ?: -1) + 1
         dao.insertDayExercise(
             DayExerciseCrossRef(
@@ -52,13 +82,20 @@ class WorkoutRepository @Inject constructor(
                 section = section,
                 orderIndex = nextOrder,
                 sets = sets,
-                reps = reps
+                reps = reps,
+                durationSeconds = durationSeconds
             )
         )
         TodayWidgetProvider.refresh(context)
     }
 
     suspend fun updateDayExercise(ref: DayExerciseCrossRef) = dao.updateDayExercise(ref)
+
+    /** Update just the sets/reps/duration prescription for one day-exercise. */
+    suspend fun updatePrescription(dxId: Long, sets: Int, reps: String, durationSeconds: Int) {
+        dao.updatePrescription(dxId, sets, reps, durationSeconds)
+        TodayWidgetProvider.refresh(context)
+    }
     suspend fun removeDayExercise(id: Long) {
         dao.deleteDayExercise(id)
         TodayWidgetProvider.refresh(context)

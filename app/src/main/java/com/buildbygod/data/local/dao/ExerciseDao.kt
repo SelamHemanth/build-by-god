@@ -33,4 +33,10 @@ interface ExerciseDao {
 
     @Query("SELECT COUNT(*) FROM exercises")
     suspend fun count(): Int
+
+    @Query("SELECT id FROM exercises")
+    suspend fun allIds(): List<String>
+
+    @Query("DELETE FROM exercises WHERE id IN (:ids)")
+    suspend fun deleteByIds(ids: List<String>)
 }

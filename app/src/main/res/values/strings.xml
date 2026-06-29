@@ -1,6 +1,9 @@
 <resources>
     <string name="app_name">Build By God</string>
     <string name="widget_today_description">See today\'s workout and start it in one tap.</string>
+    <string name="widget_diet_description">See your daily calorie and protein target at a glance.</string>
     <string name="reminder_channel_name">Workout Reminders</string>
     <string name="reminder_channel_desc">Reminders for your scheduled workouts</string>
+    <string name="water_channel_name">Water Reminders</string>
+    <string name="water_channel_desc">Nudges to drink water and hit your daily goal</string>
 </resources>

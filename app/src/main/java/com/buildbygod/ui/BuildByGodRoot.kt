@@ -31,8 +31,12 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import androidx.compose.runtime.CompositionLocalProvider
 import com.buildbygod.ui.components.GlossyBackground
+import com.buildbygod.ui.components.LocalWeather
+import com.buildbygod.ui.weather.WeatherViewModel
 import com.buildbygod.ui.daydetail.DayDetailScreen
+import com.buildbygod.ui.diet.DietScreen
 import com.buildbygod.ui.exercise.ExerciseDetailScreen
 import com.buildbygod.ui.home.HomeScreen
 import com.buildbygod.ui.library.LibraryScreen
@@ -41,7 +45,9 @@ import com.buildbygod.ui.navigation.Routes
 import com.buildbygod.ui.navigation.TopLevel
 import com.buildbygod.ui.onboarding.OnboardingScreen
 import com.buildbygod.ui.plan.PlanScreen
+import com.buildbygod.ui.profile.ManageProfileScreen
 import com.buildbygod.ui.profile.ProfileScreen
+import com.buildbygod.ui.wellness.BreathingScreen
 import com.buildbygod.ui.progress.ProgressScreen
 import com.buildbygod.ui.session.SessionScreen
 import com.buildbygod.ui.settings.SettingsScreen
@@ -49,16 +55,21 @@ import com.buildbygod.ui.settings.SettingsScreen
 @Composable
 fun BuildByGodRoot(
     startDayDeepLink: String?,
-    appViewModel: AppViewModel = hiltViewModel()
+    startRoute: String? = null,
+    appViewModel: AppViewModel = hiltViewModel(),
+    weatherViewModel: WeatherViewModel = hiltViewModel()
 ) {
     val state by appViewModel.appState.collectAsStateWithLifecycle()
+    val weather by weatherViewModel.weather.collectAsStateWithLifecycle()
 
-    GlossyBackground {
-        Crossfade(targetState = state, label = "appState") { s ->
-            when (s) {
-                AppState.Loading -> BrandSplash()
-                AppState.Onboarding -> OnboardingScreen()
-                AppState.Ready -> MainScaffold(startDayDeepLink)
+    CompositionLocalProvider(LocalWeather provides weather) {
+        GlossyBackground {
+            Crossfade(targetState = state, label = "appState") { s ->
+                when (s) {
+                    AppState.Loading -> BrandSplash()
+                    AppState.Onboarding -> OnboardingScreen()
+                    AppState.Ready -> MainScaffold(startDayDeepLink, startRoute)
+                }
             }
         }
     }
@@ -90,7 +101,7 @@ private fun BrandSplash() {
 }
 
 @Composable
-private fun MainScaffold(startDayDeepLink: String?) {
+private fun MainScaffold(startDayDeepLink: String?, startRoute: String? = null) {
     val navController = rememberNavController()
     val backStack by navController.currentBackStackEntryAsState()
     val currentRoute = backStack?.destination?.route
@@ -100,6 +111,10 @@ private fun MainScaffold(startDayDeepLink: String?) {
         if (day != null && day in 1..7) {
             navController.navigate(Routes.dayDetail(day))
         }
+    }
+
+    LaunchedEffect(startRoute) {
+        if (startRoute == Routes.DIET) navController.navigate(Routes.DIET)
     }
 
     val showBar = currentRoute in TopLevel.entries.map { it.route }
@@ -130,7 +145,9 @@ private fun MainScaffold(startDayDeepLink: String?) {
             composable(Routes.HOME) {
                 HomeScreen(
                     onOpenDay = { navController.navigate(Routes.dayDetail(it)) },
-                    onStartSession = { navController.navigate(Routes.session(it)) }
+                    onStartSession = { navController.navigate(Routes.session(it)) },
+                    onOpenBreathing = { navController.navigate(Routes.BREATHING) },
+                    onOpenDiet = { navController.navigate(Routes.DIET) }
                 )
             }
             composable(Routes.PLAN) {
@@ -141,10 +158,25 @@ private fun MainScaffold(startDayDeepLink: String?) {
             }
             composable(Routes.PROGRESS) { ProgressScreen() }
             composable(Routes.PROFILE) {
-                ProfileScreen(onOpenSettings = { navController.navigate(Routes.SETTINGS) })
+                ProfileScreen(
+                    onOpenSettings = { navController.navigate(Routes.SETTINGS) },
+                    onManageProfile = { navController.navigate(Routes.MANAGE_PROFILE) }
+                )
             }
             composable(Routes.SETTINGS) {
-                SettingsScreen(onBack = { navController.popBackStack() })
+                SettingsScreen(
+                    onBack = { navController.popBackStack() },
+                    onManageProfile = { navController.navigate(Routes.MANAGE_PROFILE) }
+                )
+            }
+            composable(Routes.MANAGE_PROFILE) {
+                ManageProfileScreen(onBack = { navController.popBackStack() })
+            }
+            composable(Routes.BREATHING) {
+                BreathingScreen(onBack = { navController.popBackStack() })
+            }
+            composable(Routes.DIET) {
+                DietScreen(onBack = { navController.popBackStack() })
             }
 
             composable(

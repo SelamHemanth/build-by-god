@@ -31,6 +31,7 @@ object SeedData {
                 name = o.getString("name"),
                 type = o.optString("type", "MAIN"),
                 muscleGroup = o.optString("muscleGroup", "ABS"),
+                difficulty = o.optString("difficulty", "BEGINNER"),
                 equipment = o.optString("equipment", "BODYWEIGHT"),
                 instructions = o.optString("instructions", ""),
                 tips = o.optString("tips", ""),

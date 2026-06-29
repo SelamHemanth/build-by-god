@@ -1,15 +1,10 @@
 package com.buildbygod.ui.components
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.StarBorder
@@ -20,16 +15,14 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.buildbygod.data.local.entity.ExerciseEntity
+import com.buildbygod.domain.model.Difficulty
 import com.buildbygod.domain.model.Equipment
 import com.buildbygod.domain.model.MuscleGroup
 import com.buildbygod.ui.theme.AccentAmber
 import com.buildbygod.ui.theme.GlassCard
-import com.buildbygod.ui.theme.Ink
 import com.buildbygod.ui.theme.TextPrimary
 import com.buildbygod.ui.theme.TextSecondary
 
@@ -43,6 +36,7 @@ fun ExerciseRow(
 ) {
     val muscle = MuscleGroup.fromName(exercise.muscleGroup)
     val equipment = Equipment.fromName(exercise.equipment)
+    val difficulty = Difficulty.fromName(exercise.difficulty)
     GlassCard(
         modifier.fillMaxWidth(),
         cornerRadius = 20.dp,
@@ -50,20 +44,12 @@ fun ExerciseRow(
         contentPadding = androidx.compose.foundation.layout.PaddingValues(12.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                Modifier
-                    .size(46.dp)
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(Brush.linearGradient(listOf(muscle.accent, muscle.accent.copy(alpha = 0.4f)))),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    exercise.name.take(1).uppercase(),
-                    color = Ink,
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
-                )
-            }
+            ExerciseThumb(
+                clipAsset = exercise.clipAsset,
+                accent = muscle.accent,
+                contentDescription = exercise.name,
+                size = 46.dp
+            )
             Column(
                 Modifier
                     .weight(1f)
@@ -79,6 +65,8 @@ fun ExerciseRow(
                     Text(muscle.label, style = MaterialTheme.typography.labelMedium, color = muscle.accent)
                     Text("-", style = MaterialTheme.typography.labelMedium, color = TextSecondary)
                     Text(equipment.label, style = MaterialTheme.typography.labelMedium, color = TextSecondary)
+                    Text("-", style = MaterialTheme.typography.labelMedium, color = TextSecondary)
+                    Text(difficulty.label, style = MaterialTheme.typography.labelMedium, color = difficulty.accent, fontWeight = FontWeight.SemiBold)
                 }
             }
             if (trailing != null) {

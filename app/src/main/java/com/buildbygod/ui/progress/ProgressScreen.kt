@@ -1,6 +1,7 @@
 package com.buildbygod.ui.progress
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -43,11 +44,14 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.buildbygod.data.local.entity.SessionLogEntity
 import com.buildbygod.domain.model.BodyComposition
+import com.buildbygod.domain.model.NutritionPlan
 import com.buildbygod.domain.model.UnitConvert
 import com.buildbygod.domain.model.WeightUnit
+import com.buildbygod.ui.components.SortChip
 import com.buildbygod.ui.theme.AccentAmber
 import com.buildbygod.ui.theme.AccentBlue
 import com.buildbygod.ui.theme.AccentGreen
+import com.buildbygod.ui.theme.AccentPink
 import com.buildbygod.ui.theme.AccentViolet
 import com.buildbygod.ui.theme.GlassCard
 import com.buildbygod.ui.theme.Ink
@@ -147,11 +151,51 @@ fun ProgressScreen(vm: ProgressViewModel = hiltViewModel()) {
             }
         }
 
+        // Daily nutrition target (moved here from the Profile tab)
+        item {
+            Text("Daily nutrition target", style = MaterialTheme.typography.titleMedium, color = TextPrimary, fontWeight = FontWeight.SemiBold)
+        }
+        item {
+            val n = state.nutrition
+            if (n == null) {
+                GlassCard(Modifier.fillMaxWidth()) {
+                    Text("Complete your body details", style = MaterialTheme.typography.titleMedium, color = TextPrimary)
+                    Text(
+                        "Add your date of birth, height and weight in the Profile tab to get personalized calorie and protein targets.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = TextSecondary
+                    )
+                }
+            } else {
+                NutritionCard(n, state)
+            }
+        }
+
+        // Diet adherence (mark days on track from the Diet plan screen)
+        item {
+            Text("Diet progress", style = MaterialTheme.typography.titleMedium, color = TextPrimary, fontWeight = FontWeight.SemiBold)
+        }
+        item { DietProgressCard(state) }
+
         // Calendar
         item { CalendarCard(state, onPrev = vm::previousMonth, onNext = vm::nextMonth) }
 
         item {
-            Text("Recent sessions", style = MaterialTheme.typography.titleMedium, color = TextPrimary, fontWeight = FontWeight.SemiBold)
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("Recent sessions", style = MaterialTheme.typography.titleMedium, color = TextPrimary, fontWeight = FontWeight.SemiBold)
+                if (state.sessions.isNotEmpty()) {
+                    SortChip(
+                        options = SessionSort.entries,
+                        selected = state.sessionSort,
+                        label = { it.label },
+                        onSelect = vm::setSessionSort
+                    )
+                }
+            }
         }
 
         if (state.sessions.isEmpty()) {
@@ -226,6 +270,136 @@ private fun BodyInsightsCard(body: BodyComposition, unit: WeightUnit) {
             style = MaterialTheme.typography.labelMedium,
             color = TextSecondary
         )
+    }
+}
+
+@Composable
+private fun DietProgressCard(state: ProgressUiState) {
+    GlassCard(Modifier.fillMaxWidth()) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            ProgressRing(
+                progress = (state.rangeDietDays.toFloat() / state.range.days).coerceIn(0f, 1f),
+                size = 86.dp
+            ) {
+                Text(
+                    "${state.rangeDietDays}",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = TextPrimary,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+            Spacer(Modifier.width(16.dp))
+            Column(Modifier.weight(1f)) {
+                Text("On-track days", style = MaterialTheme.typography.titleMedium, color = TextPrimary, fontWeight = FontWeight.Bold)
+                Text(
+                    "${state.rangeDietDays} of last ${state.range.days} days",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = TextSecondary
+                )
+                Text(
+                    "${state.dietStreak}-day diet streak",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = AccentGreen
+                )
+                if (state.dietDays.isEmpty()) {
+                    Text(
+                        "Tap \"Mark today on track\" in the Diet plan to start tracking.",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = TextSecondary
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun NutritionCard(n: NutritionPlan, state: ProgressUiState) {
+    val c = state.consumedToday
+    GlassCard(Modifier.fillMaxWidth()) {
+        Column(Modifier.fillMaxWidth()) {
+            Text("Calorie target", style = MaterialTheme.typography.labelMedium, color = TextSecondary)
+            Text("${n.calorieTarget} kcal", style = MaterialTheme.typography.headlineMedium, color = TextPrimary, fontWeight = FontWeight.Bold)
+            Text(
+                "Based on your weight, height, age, activity & goal · BMR ${n.bmr} · TDEE ${n.tdee}",
+                style = MaterialTheme.typography.labelMedium, color = TextSecondary
+            )
+        }
+        Spacer(Modifier.height(12.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            MacroPill("Protein", "${n.proteinG} g", AccentPink, Modifier.weight(1f))
+            MacroPill("Carbs", "${n.carbsG} g", AccentBlue, Modifier.weight(1f))
+            MacroPill("Fat", "${n.fatG} g", AccentAmber, Modifier.weight(1f))
+        }
+        Spacer(Modifier.height(8.dp))
+        MacroPill("Water", "${n.waterMl} ml / day", AccentGreen, Modifier.fillMaxWidth())
+
+        Spacer(Modifier.height(16.dp))
+        Text("Today's intake vs target", style = MaterialTheme.typography.titleSmall, color = TextPrimary, fontWeight = FontWeight.SemiBold)
+        Text(
+            if (state.loggedToday == 0) "Log your meals on the Diet plan to track this."
+            else "${state.loggedToday} item${if (state.loggedToday == 1) "" else "s"} logged today",
+            style = MaterialTheme.typography.labelMedium, color = TextSecondary
+        )
+        Spacer(Modifier.height(10.dp))
+        IntakeProgress("Calories", c.kcal, n.calorieTarget, "kcal", AccentBlue)
+        Spacer(Modifier.height(8.dp))
+        IntakeProgress("Protein", c.protein, n.proteinG, "g", AccentPink)
+        Spacer(Modifier.height(8.dp))
+        IntakeProgress("Carbs", c.carbs, n.carbsG, "g", AccentAmber)
+        Spacer(Modifier.height(8.dp))
+        IntakeProgress("Fat", c.fat, n.fatG, "g", AccentViolet)
+
+        if (state.supplementsToday.isNotEmpty()) {
+            Spacer(Modifier.height(12.dp))
+            Text("Supplements today", style = MaterialTheme.typography.labelMedium, color = AccentGreen, fontWeight = FontWeight.SemiBold)
+            Spacer(Modifier.height(4.dp))
+            Text(
+                state.supplementsToday.joinToString(" · "),
+                style = MaterialTheme.typography.bodyMedium, color = TextPrimary
+            )
+        }
+    }
+}
+
+@Composable
+private fun IntakeProgress(label: String, value: Int, target: Int, unit: String, color: Color) {
+    val frac = if (target <= 0) 0f else (value.toFloat() / target).coerceIn(0f, 1f)
+    Column(Modifier.fillMaxWidth()) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text(label, style = MaterialTheme.typography.labelMedium, color = TextSecondary)
+            Text("$value / $target $unit", style = MaterialTheme.typography.labelMedium, color = color, fontWeight = FontWeight.SemiBold)
+        }
+        Spacer(Modifier.height(4.dp))
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .height(7.dp)
+                .clip(CircleShape)
+                .background(Surface2.copy(alpha = 0.7f))
+        ) {
+            Box(
+                Modifier
+                    .fillMaxWidth(frac)
+                    .height(7.dp)
+                    .clip(CircleShape)
+                    .background(color)
+            )
+        }
+    }
+}
+
+@Composable
+private fun MacroPill(label: String, value: String, tint: Color, modifier: Modifier = Modifier) {
+    Box(
+        modifier
+            .liquidGlass(RoundedCornerShape(12.dp), bloom = false)
+            .padding(vertical = 10.dp, horizontal = 12.dp)
+    ) {
+        Column {
+            Text(label, style = MaterialTheme.typography.labelMedium, color = tint, fontWeight = FontWeight.SemiBold)
+            Text(value, style = MaterialTheme.typography.titleMedium, color = TextPrimary, fontWeight = FontWeight.Bold)
+        }
     }
 }
 
@@ -318,7 +492,9 @@ private fun CalendarCard(state: ProgressUiState, onPrev: () -> Unit, onNext: () 
                             val active = state.activeDays.contains(date.toEpochDay())
                             val isToday = date == today
                             val isFuture = date.isAfter(today)
-                            DayCell(dayNum, active, isToday, isFuture, Modifier.weight(1f))
+                            val planned = state.plannedDows.contains(date.dayOfWeek.value)
+                            val diet = state.dietDays.contains(date.toEpochDay())
+                            DayCell(dayNum, active, planned, diet, isToday, isFuture, Modifier.weight(1f))
                         } else {
                             Box(Modifier.weight(1f))
                         }
@@ -326,11 +502,22 @@ private fun CalendarCard(state: ProgressUiState, onPrev: () -> Unit, onNext: () 
                 }
             }
         }
+        CalendarLegend()
     }
 }
 
 @Composable
-private fun DayCell(day: Int, active: Boolean, isToday: Boolean, isFuture: Boolean, modifier: Modifier) {
+private fun DayCell(
+    day: Int,
+    active: Boolean,
+    planned: Boolean,
+    diet: Boolean,
+    isToday: Boolean,
+    isFuture: Boolean,
+    modifier: Modifier
+) {
+    // Outline planned (non-rest) days that weren't completed, so the user sees their schedule.
+    val showPlanRing = planned && !active
     Box(
         modifier
             .aspectRatio(1f)
@@ -341,6 +528,13 @@ private fun DayCell(day: Int, active: Boolean, isToday: Boolean, isFuture: Boole
                     isToday -> Brush.linearGradient(listOf(Surface2, Surface2))
                     else -> Brush.linearGradient(listOf(Color.Transparent, Color.Transparent))
                 }
+            )
+            .then(
+                if (showPlanRing) Modifier.border(
+                    1.5.dp,
+                    AccentBlue.copy(alpha = if (isFuture) 0.35f else 0.6f),
+                    RoundedCornerShape(10.dp)
+                ) else Modifier
             ),
         contentAlignment = Alignment.Center
     ) {
@@ -353,8 +547,59 @@ private fun DayCell(day: Int, active: Boolean, isToday: Boolean, isFuture: Boole
                 isToday -> AccentBlue
                 else -> TextSecondary
             },
-            fontWeight = if (active || isToday) FontWeight.Bold else FontWeight.Normal
+            fontWeight = if (active || isToday || showPlanRing) FontWeight.Bold else FontWeight.Normal
         )
+        if (active) {
+            Icon(
+                Icons.Filled.CheckCircle,
+                contentDescription = "Completed",
+                tint = Ink,
+                modifier = Modifier.align(Alignment.TopEnd).padding(2.dp).size(11.dp)
+            )
+        }
+        if (diet) {
+            Box(
+                Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 3.dp)
+                    .size(5.dp)
+                    .clip(CircleShape)
+                    .background(AccentGreen)
+            )
+        }
+    }
+}
+
+@Composable
+private fun CalendarLegend() {
+    Row(
+        Modifier.fillMaxWidth().padding(top = 10.dp),
+        horizontalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        LegendDot(AccentBlue, "Done")
+        LegendRing("Planned")
+        LegendDot(AccentGreen, "Diet")
+    }
+}
+
+@Composable
+private fun LegendDot(color: Color, label: String) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+        Box(Modifier.size(10.dp).clip(CircleShape).background(color))
+        Text(label, style = MaterialTheme.typography.labelMedium, color = TextSecondary)
+    }
+}
+
+@Composable
+private fun LegendRing(label: String) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+        Box(
+            Modifier
+                .size(10.dp)
+                .clip(RoundedCornerShape(3.dp))
+                .border(1.5.dp, AccentBlue.copy(alpha = 0.6f), RoundedCornerShape(3.dp))
+        )
+        Text(label, style = MaterialTheme.typography.labelMedium, color = TextSecondary)
     }
 }
 

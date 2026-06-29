@@ -4,11 +4,16 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import com.buildbygod.domain.model.WeatherInfo
 import com.buildbygod.ui.theme.LocalFitTokens
+
+/** Current local weather, provided at the app root so the background can animate seasonally. */
+val LocalWeather = compositionLocalOf { WeatherInfo() }
 
 /** Full-screen glossy background with soft radial accent glows, adapts to theme. */
 @Composable
@@ -46,6 +51,7 @@ fun GlossyBackground(
                 )
             )
     ) {
+        WeatherOverlay(LocalWeather.current, Modifier.fillMaxSize())
         content()
     }
 }

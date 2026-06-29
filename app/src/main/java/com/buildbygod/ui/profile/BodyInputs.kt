@@ -137,18 +137,6 @@ fun HeightPicker(heightCm: Int, unit: HeightUnit, onHeightCm: (Int) -> Unit, onU
         }
         Spacer(Modifier.height(10.dp))
         when (unit) {
-            HeightUnit.FT_IN -> {
-                val fi = remember(unit) {
-                    if (heightCm > 0) UnitConvert.cmToFeetInches(heightCm) else 0 to 0
-                }
-                var ft by remember(unit) { mutableStateOf(if (heightCm > 0) fi.first.toString() else "") }
-                var inch by remember(unit) { mutableStateOf(if (heightCm > 0) fi.second.toString() else "") }
-                fun push() = onHeightCm(UnitConvert.feetInchesToCm(ft.toIntOrNull() ?: 0, inch.toIntOrNull() ?: 0))
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    NumField(ft, "ft", Modifier.weight(1f)) { ft = it; push() }
-                    NumField(inch, "in", Modifier.weight(1f)) { inch = it; push() }
-                }
-            }
             HeightUnit.CM -> {
                 var t by remember(unit) { mutableStateOf(if (heightCm > 0) heightCm.toString() else "") }
                 NumField(t, "cm", Modifier.fillMaxWidth()) { t = it; onHeightCm(t.toIntOrNull() ?: 0) }

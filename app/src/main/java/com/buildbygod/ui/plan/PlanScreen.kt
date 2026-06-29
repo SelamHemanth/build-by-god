@@ -18,15 +18,22 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -41,7 +48,9 @@ import com.buildbygod.ui.theme.AccentBlue
 import com.buildbygod.ui.theme.AccentGreen
 import com.buildbygod.ui.theme.AccentViolet
 import com.buildbygod.ui.theme.GlassCard
+import com.buildbygod.ui.theme.GlassDialog
 import com.buildbygod.ui.theme.Ink
+import com.buildbygod.ui.theme.LocalFitTokens
 import com.buildbygod.ui.theme.Surface2
 import com.buildbygod.ui.theme.TextPrimary
 import com.buildbygod.ui.theme.TextSecondary
@@ -54,6 +63,7 @@ fun PlanScreen(
     vm: PlanViewModel = hiltViewModel()
 ) {
     val days by vm.days.collectAsStateWithLifecycle()
+    var autoFillDay by remember { mutableStateOf<WorkoutDayEntity?>(null) }
 
     LazyColumn(
         Modifier
@@ -65,7 +75,7 @@ fun PlanScreen(
         item {
             Spacer(Modifier.height(8.dp))
             Text("Weekly Plan", style = MaterialTheme.typography.headlineLarge, color = TextPrimary, fontWeight = FontWeight.Bold)
-            Text("Tap a day to edit its workout", style = MaterialTheme.typography.bodyMedium, color = TextSecondary)
+            Text("Tap a day to edit, or name a day to auto-build it", style = MaterialTheme.typography.bodyMedium, color = TextSecondary)
             Spacer(Modifier.height(4.dp))
         }
         items(days, key = { it.dayOfWeek }) { day ->
@@ -74,10 +84,62 @@ fun PlanScreen(
                 onOpen = { onOpenDay(day.dayOfWeek) },
                 onToggleReminder = { vm.setReminder(day, it) },
                 onSetTime = { vm.setTime(day, it) },
-                onToggleRest = { vm.setRest(day, it) }
+                onToggleRest = { vm.setRest(day, it) },
+                onEditName = { autoFillDay = day }
             )
         }
         item { Spacer(Modifier.height(90.dp)) }
+    }
+
+    autoFillDay?.let { day ->
+        AutoFillDialog(
+            day = day,
+            previewGroups = vm::previewGroups,
+            onDismiss = { autoFillDay = null },
+            onRename = { name -> vm.rename(day, name); autoFillDay = null },
+            onGenerate = { name -> vm.autoFill(day, name); autoFillDay = null }
+        )
+    }
+}
+
+@Composable
+private fun AutoFillDialog(
+    day: WorkoutDayEntity,
+    previewGroups: (String) -> List<String>,
+    onDismiss: () -> Unit,
+    onRename: (String) -> Unit,
+    onGenerate: (String) -> Unit
+) {
+    val tokens = LocalFitTokens.current
+    var text by remember { mutableStateOf(day.title) }
+    val groups = previewGroups(text)
+    GlassDialog(
+        onDismiss = onDismiss,
+        title = "Name this day",
+        confirmButton = {
+            TextButton(onClick = { onGenerate(text) }, enabled = text.isNotBlank()) {
+                Text("Generate", color = tokens.accent)
+            }
+        },
+        dismissButton = { TextButton(onClick = { onRename(text) }, enabled = text.isNotBlank()) { Text("Rename only", color = TextSecondary) } }
+    ) {
+        Text(
+            "Name the day (e.g. \"Leg Day\", \"Push\", \"Arms & Abs\") and we'll auto-build warm-ups, exercises and stretches for your level.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = TextSecondary
+        )
+        Spacer(Modifier.height(12.dp))
+        OutlinedTextField(value = text, onValueChange = { text = it }, singleLine = true, label = { Text("Day name") })
+        Spacer(Modifier.height(10.dp))
+        if (groups.isNotEmpty()) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Filled.AutoAwesome, contentDescription = null, tint = tokens.accent, modifier = Modifier.size(16.dp))
+                Spacer(Modifier.size(6.dp))
+                Text("Targets: ${groups.joinToString(", ")}", style = MaterialTheme.typography.labelMedium, color = tokens.accent)
+            }
+        } else {
+            Text("No muscles detected — we'll build a balanced full-body day.", style = MaterialTheme.typography.labelMedium, color = TextSecondary)
+        }
     }
 }
 
@@ -87,7 +149,8 @@ private fun DayPlanCard(
     onOpen: () -> Unit,
     onToggleReminder: (Boolean) -> Unit,
     onSetTime: (Int) -> Unit,
-    onToggleRest: (Boolean) -> Unit
+    onToggleRest: (Boolean) -> Unit,
+    onEditName: () -> Unit
 ) {
     val context = LocalContext.current
     GlassCard(Modifier.fillMaxWidth(), onClick = onOpen) {
@@ -110,7 +173,19 @@ private fun DayPlanCard(
                 )
             }
             Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
-                Text(day.title, style = MaterialTheme.typography.titleMedium, color = TextPrimary, fontWeight = FontWeight.SemiBold)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(day.title, style = MaterialTheme.typography.titleMedium, color = TextPrimary, fontWeight = FontWeight.SemiBold)
+                    Spacer(Modifier.size(6.dp))
+                    Icon(
+                        Icons.Filled.Edit,
+                        contentDescription = "Rename / auto-build",
+                        tint = TextSecondary,
+                        modifier = Modifier
+                            .size(16.dp)
+                            .clip(RoundedCornerShape(6.dp))
+                            .clickable { onEditName() }
+                    )
+                }
                 Text(
                     if (day.isRestDay) "Rest & recovery" else day.focus,
                     style = MaterialTheme.typography.labelMedium,

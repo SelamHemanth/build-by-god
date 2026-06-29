@@ -62,10 +62,7 @@ class ProfileDataStore @Inject constructor(
         val ACTIVE = stringPreferencesKey("active_id")
     }
 
-    /** All saved users; never empty (a default user is synthesized when none exist). */
-    val users: Flow<List<UserProfile>> = context.usersDataStore.data.map { parse(it).first }
-
-    /** The currently selected user's profile. */
+    /** The user's profile. */
     val profile: Flow<UserProfile> = context.usersDataStore.data.map { p ->
         val (list, active) = parse(p)
         list.firstOrNull { it.id == active } ?: list.first()
@@ -79,33 +76,6 @@ class ProfileDataStore @Inject constructor(
             val updated = transform(list[idx]).copy(id = list[idx].id)
             val newList = list.toMutableList().also { it[idx] = updated }
             write(p, newList, active)
-        }
-    }
-
-    suspend fun addUser(name: String): String {
-        val id = "u${System.currentTimeMillis()}"
-        context.usersDataStore.edit { p ->
-            val (list, _) = parse(p)
-            val newUser = UserProfile(id = id, name = name.trim(), onboarded = false)
-            write(p, list + newUser, id) // switch to the newcomer so they can onboard
-        }
-        return id
-    }
-
-    suspend fun switchUser(id: String) {
-        context.usersDataStore.edit { p ->
-            val (list, active) = parse(p)
-            if (list.any { it.id == id }) write(p, list, id) else write(p, list, active)
-        }
-    }
-
-    suspend fun removeUser(id: String) {
-        context.usersDataStore.edit { p ->
-            val (list, active) = parse(p)
-            if (list.size <= 1) return@edit
-            val newList = list.filterNot { it.id == id }
-            val newActive = if (active == id) newList.first().id else active
-            write(p, newList, newActive)
         }
     }
 

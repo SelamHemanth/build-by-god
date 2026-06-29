@@ -43,5 +43,14 @@ class BuildByGodApp : Application(), ImageLoaderFactory {
             enableVibration(true)
         }
         manager.createNotificationChannel(channel)
+
+        val waterChannel = NotificationChannel(
+            NotificationConstants.WATER_CHANNEL_ID,
+            getString(R.string.water_channel_name),
+            NotificationManager.IMPORTANCE_DEFAULT
+        ).apply {
+            description = getString(R.string.water_channel_desc)
+        }
+        manager.createNotificationChannel(waterChannel)
     }
 }

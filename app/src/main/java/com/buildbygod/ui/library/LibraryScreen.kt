@@ -1,5 +1,6 @@
 package com.buildbygod.ui.library
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -21,11 +22,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.FitnessCenter
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -39,8 +37,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.buildbygod.domain.model.Difficulty
+import com.buildbygod.domain.model.Equipment
 import com.buildbygod.domain.model.MuscleGroup
+import com.buildbygod.ui.components.ControlsRow
 import com.buildbygod.ui.components.ExerciseRow
+import com.buildbygod.ui.components.FilterChip
+import com.buildbygod.ui.components.ListSearchField
+import com.buildbygod.ui.components.SortChip
 import com.buildbygod.ui.theme.AccentAmber
 import com.buildbygod.ui.theme.AccentBlue
 import com.buildbygod.ui.theme.GlassCard
@@ -55,6 +59,9 @@ fun LibraryScreen(
     vm: LibraryViewModel = hiltViewModel()
 ) {
     val state by vm.state.collectAsStateWithLifecycle()
+
+    // Back should return to the muscle-group grid instead of dropping out to Home.
+    BackHandler(enabled = !state.showGroups) { vm.backToGroups() }
 
     LazyColumn(
         Modifier
@@ -81,21 +88,47 @@ fun LibraryScreen(
         }
 
         item {
-            OutlinedTextField(
-                value = state.query,
-                onValueChange = vm::onQuery,
-                placeholder = { Text("Search all exercises") },
-                leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
-                singleLine = true,
-                shape = RoundedCornerShape(16.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = AccentBlue,
-                    unfocusedBorderColor = Surface2,
-                    focusedTextColor = TextPrimary,
-                    unfocusedTextColor = TextPrimary
-                ),
+            ListSearchField(
+                query = state.query,
+                onQuery = vm::onQuery,
+                placeholder = "Search all exercises",
                 modifier = Modifier.fillMaxWidth()
             )
+            Spacer(Modifier.height(8.dp))
+        }
+
+        item {
+            ControlsRow {
+                SortChip(
+                    options = ExerciseSort.entries,
+                    selected = state.sort,
+                    label = { it.label },
+                    onSelect = vm::onSort
+                )
+                Difficulty.entries.forEach { d ->
+                    FilterChip(
+                        label = d.label,
+                        selected = state.selectedDifficulty == d,
+                        accent = d.accent,
+                        onClick = { vm.onDifficulty(d) }
+                    )
+                }
+                Equipment.entries.forEach { e ->
+                    FilterChip(
+                        label = e.label,
+                        selected = state.selectedEquipment == e,
+                        onClick = { vm.onEquipment(e) }
+                    )
+                }
+            }
+            if (!state.showGroups) {
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    "${state.resultCount} exercise${if (state.resultCount == 1) "" else "s"}",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = TextSecondary
+                )
+            }
             Spacer(Modifier.height(6.dp))
         }
 
@@ -152,7 +185,8 @@ fun LibraryScreen(
                 Spacer(Modifier.height(4.dp))
             }
 
-            if (state.grouped.isEmpty()) {
+            val isEmpty = if (state.showByDifficulty) state.byDifficulty.isEmpty() else state.grouped.isEmpty()
+            if (isEmpty) {
                 item {
                     Spacer(Modifier.height(40.dp))
                     Text(
@@ -164,26 +198,59 @@ fun LibraryScreen(
                 }
             }
 
-            state.grouped.forEach { (muscle, list) ->
-                item(key = "h_${muscle.name}") {
-                    Spacer(Modifier.height(2.dp))
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            muscle.label,
-                            style = MaterialTheme.typography.titleLarge,
-                            color = muscle.accent,
-                            fontWeight = FontWeight.Bold
+            if (state.showByDifficulty) {
+                // ---- Single group: organise by Beginner / Intermediate / Advanced ----
+                state.byDifficulty.forEach { (difficulty, list) ->
+                    item(key = "d_${difficulty.name}") {
+                        Spacer(Modifier.height(2.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(difficulty.accent.copy(alpha = 0.18f))
+                                    .padding(horizontal = 10.dp, vertical = 4.dp)
+                            ) {
+                                Text(
+                                    difficulty.label,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = difficulty.accent,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                            Spacer(Modifier.width(8.dp))
+                            Text("${list.size}", style = MaterialTheme.typography.labelMedium, color = TextSecondary)
+                        }
+                    }
+                    items(list, key = { it.id }) { ex ->
+                        ExerciseRow(
+                            exercise = ex,
+                            onToggleFavorite = { vm.toggleFavorite(ex.id, it) },
+                            onClick = { onOpenExercise(ex.id) }
                         )
-                        Spacer(Modifier.width(8.dp))
-                        Text("${list.size}", style = MaterialTheme.typography.labelMedium, color = TextSecondary)
                     }
                 }
-                items(list, key = { it.id }) { ex ->
-                    ExerciseRow(
-                        exercise = ex,
-                        onToggleFavorite = { vm.toggleFavorite(ex.id, it) },
-                        onClick = { onOpenExercise(ex.id) }
-                    )
+            } else {
+                state.grouped.forEach { (muscle, list) ->
+                    item(key = "h_${muscle.name}") {
+                        Spacer(Modifier.height(2.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                muscle.label,
+                                style = MaterialTheme.typography.titleLarge,
+                                color = muscle.accent,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Text("${list.size}", style = MaterialTheme.typography.labelMedium, color = TextSecondary)
+                        }
+                    }
+                    items(list, key = { it.id }) { ex ->
+                        ExerciseRow(
+                            exercise = ex,
+                            onToggleFavorite = { vm.toggleFavorite(ex.id, it) },
+                            onClick = { onOpenExercise(ex.id) }
+                        )
+                    }
                 }
             }
         }

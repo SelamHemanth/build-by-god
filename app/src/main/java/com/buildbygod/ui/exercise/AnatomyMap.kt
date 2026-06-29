@@ -104,10 +104,22 @@ private fun FigureCell(caption: String, modifier: Modifier = Modifier, draw: Dra
 private fun DrawScope.drawRegion(r: Region, accent: Color) {
     fun blob(cx: Float) {
         val center = Offset(cx * size.width, r.cy * size.height)
-        val glow = Size(r.rx * size.width * 2.6f, r.ry * size.height * 2.6f)
+        val glow = Size(r.rx * size.width * 3.0f, r.ry * size.height * 3.0f)
         val core = Size(r.rx * size.width * 2f, r.ry * size.height * 2f)
-        drawOval(accent.copy(alpha = 0.22f), topLeft = Offset(center.x - glow.width / 2, center.y - glow.height / 2), size = glow)
-        drawOval(accent.copy(alpha = 0.92f), topLeft = Offset(center.x - core.width / 2, center.y - core.height / 2), size = core)
+        val rim = Size(core.width * 1.12f, core.height * 1.12f)
+        // soft outer glow
+        drawOval(accent.copy(alpha = 0.20f), topLeft = Offset(center.x - glow.width / 2, center.y - glow.height / 2), size = glow)
+        // bright rim
+        drawOval(Color.White.copy(alpha = 0.35f), topLeft = Offset(center.x - rim.width / 2, center.y - rim.height / 2), size = rim)
+        // solid muscle highlight
+        drawOval(accent.copy(alpha = 0.95f), topLeft = Offset(center.x - core.width / 2, center.y - core.height / 2), size = core)
+        // inner sheen for a fuller, "lit" muscle look
+        val sheen = Size(core.width * 0.5f, core.height * 0.5f)
+        drawOval(
+            Color.White.copy(alpha = 0.25f),
+            topLeft = Offset(center.x - sheen.width / 2, center.y - core.height * 0.28f),
+            size = sheen
+        )
     }
     blob(r.cx)
     if (r.mirror) blob(1f - r.cx)
@@ -162,4 +174,23 @@ private fun DrawScope.drawFigure(color: Color) {
     // feet
     drawOval(color, topLeft = Offset(0.33f * w, 0.95f * h), size = Size(0.16f * w, 0.04f * h))
     drawOval(color, topLeft = Offset(0.51f * w, 0.95f * h), size = Size(0.16f * w, 0.04f * h))
+
+    // ---- muscle-definition lines so the body reads anatomically ----
+    val line = color.copy(alpha = 0.6f)
+    val sw = 0.006f * w
+    fun seg(x0: Float, y0: Float, x1: Float, y1: Float) =
+        drawLine(line, Offset(x0 * w, y0 * h), Offset(x1 * w, y1 * h), strokeWidth = sw)
+
+    // pec split + lower pec lines
+    seg(0.50f, 0.215f, 0.50f, 0.30f)
+    seg(0.50f, 0.30f, 0.40f, 0.31f)
+    seg(0.50f, 0.30f, 0.60f, 0.31f)
+    // abs: central line + 3 horizontal divisions
+    seg(0.50f, 0.31f, 0.50f, 0.45f)
+    seg(0.43f, 0.35f, 0.57f, 0.35f)
+    seg(0.43f, 0.39f, 0.57f, 0.39f)
+    seg(0.43f, 0.43f, 0.57f, 0.43f)
+    // quad separation
+    seg(0.41f, 0.58f, 0.41f, 0.78f)
+    seg(0.59f, 0.58f, 0.59f, 0.78f)
 }

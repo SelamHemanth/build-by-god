@@ -3,61 +3,63 @@
     android:id="@+id/widget_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
     android:background="@drawable/widget_background"
-    android:padding="16dp">
+    android:padding="12dp">
 
-    <TextView
-        android:id="@+id/widget_eyebrow"
-        android:layout_width="wrap_content"
+    <LinearLayout
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:text="TODAY"
-        android:textColor="#99FFFFFF"
-        android:textSize="11sp"
-        android:textStyle="bold"
-        android:letterSpacing="0.08" />
+        android:layout_weight="1"
+        android:orientation="vertical">
 
-    <TextView
-        android:id="@+id/widget_title"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="6dp"
-        android:text="Workout"
-        android:textColor="#FFFFFFFF"
-        android:textSize="22sp"
-        android:textStyle="bold"
-        android:maxLines="1"
-        android:ellipsize="end" />
+        <TextView
+            android:id="@+id/widget_eyebrow"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="TODAY"
+            android:textColor="#99FFFFFF"
+            android:textSize="10sp"
+            android:textStyle="bold"
+            android:letterSpacing="0.08" />
 
-    <TextView
-        android:id="@+id/widget_subtitle"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="2dp"
-        android:text=""
-        android:textColor="#B3FFFFFF"
-        android:textSize="13sp"
-        android:maxLines="2"
-        android:ellipsize="end" />
+        <TextView
+            android:id="@+id/widget_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:text="Workout"
+            android:textColor="#FFFFFFFF"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:maxLines="1"
+            android:ellipsize="end" />
 
-    <Space
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1" />
+        <TextView
+            android:id="@+id/widget_subtitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text=""
+            android:textColor="#B3FFFFFF"
+            android:textSize="11sp"
+            android:maxLines="1"
+            android:ellipsize="end" />
+    </LinearLayout>
 
     <TextView
         android:id="@+id/widget_cta"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
+        android:layout_marginStart="8dp"
         android:background="@drawable/widget_cta_background"
-        android:paddingLeft="18dp"
-        android:paddingRight="18dp"
-        android:paddingTop="9dp"
-        android:paddingBottom="9dp"
-        android:text="Start workout  ›"
+        android:paddingLeft="12dp"
+        android:paddingRight="12dp"
+        android:paddingTop="8dp"
+        android:paddingBottom="8dp"
+        android:text="Start ›"
         android:textColor="#0B0B0F"
-        android:textSize="13sp"
+        android:textSize="12sp"
         android:textStyle="bold" />
 
 </LinearLayout>
